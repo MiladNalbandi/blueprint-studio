@@ -1,0 +1,61 @@
+[project]
+name = "flowforge-backend"
+version = "0.1.0"
+description = "FlowForge - Visual code architecture builder"
+requires-python = ">=3.13"
+dependencies = [
+    # Web framework
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "websockets>=13.0",
+    "python-multipart>=0.0.12",
+    
+    # Database
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30.0",
+    "alembic>=1.14.0",
+    "psycopg2-binary>=2.9.10",
+    
+    # Redis & Task Queue
+    "redis>=5.2.0",
+    "celery[redis]>=5.4.0",
+    
+    # LLM Providers
+    "anthropic>=0.39.0",
+    "openai>=1.55.0",
+    "google-genai>=1.0.0",
+    
+    # Templating (code generation)
+    "Jinja2>=3.1.4",
+    
+    # Validation & Settings
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    
+    # Encryption (API key storage)
+    "cryptography>=44.0.0",
+    
+    # Utilities
+    "python-dotenv>=1.0.1",
+    "httpx>=0.28.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

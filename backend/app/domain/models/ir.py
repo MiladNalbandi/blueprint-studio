@@ -1,0 +1,124 @@
+"""
+Intermediate Representation (IR) — the bridge between the visual flow graph
+and the code generation templates. Language-agnostic.
+
+The flow_to_ir service converts React Flow JSON → IR.
+Each generator adapter converts IR → code files.
+"""
+
+from dataclasses import dataclass, field
+
+
+@dataclass
+class IRField:
+    name: str
+    type: str  # language-agnostic: "string", "integer", "boolean", "float", "datetime", "uuid", "json"
+    nullable: bool = False
+    primary: bool = False
+    default: str | None = None
+
+
+@dataclass
+class IRValidation:
+    field: str
+    rule: str  # "required", "email", "min", "max", "regex", "uuid", "unique"
+    params: dict = field(default_factory=dict)
+
+
+@dataclass
+class IREndpoint:
+    id: str
+    method: str  # GET, POST, PUT, PATCH, DELETE
+    path: str
+    description: str = ""
+    request_dto: str | None = None   # reference to IRDto.id
+    response_dto: str | None = None
+    middlewares: list[str] = field(default_factory=list)  # references to IRMiddleware.id
+    service: str | None = None  # reference to IRService.id
+
+
+@dataclass
+class IRDto:
+    id: str
+    name: str
+    fields: list[IRField] = field(default_factory=list)
+    validations: list[IRValidation] = field(default_factory=list)
+    on_validation_fail: str = "422"  # status code or "redirect" or "custom"
+
+
+@dataclass
+class IREntity:
+    id: str
+    name: str
+    table_name: str
+    fields: list[IRField] = field(default_factory=list)
+    relations: list[dict] = field(default_factory=list)  # {type, target, field}
+
+
+@dataclass
+class IRService:
+    id: str
+    name: str
+    methods: list[str] = field(default_factory=list)
+    repository: str | None = None  # reference to IRRepository.id
+    description: str = ""
+
+
+@dataclass
+class IRRepository:
+    id: str
+    name: str
+    entity: str  # reference to IREntity.id
+    methods: list[str] = field(default_factory=lambda: ["find_all", "find_by_id", "save", "delete"])
+
+
+@dataclass
+class IRMiddleware:
+    id: str
+    type: str  # "auth", "rate_limit", "cors", "logging", "custom"
+    config: dict = field(default_factory=dict)
+
+
+@dataclass
+class IREvent:
+    id: str
+    name: str
+    payload_fields: list[IRField] = field(default_factory=list)
+    is_async: bool = True
+
+
+@dataclass
+class IRLogicBlock:
+    id: str
+    condition: str
+    output_count: int = 2
+    description: str = ""
+
+
+@dataclass
+class IR:
+    """The complete Intermediate Representation of a project."""
+    # Project metadata
+    language: str
+    framework: str
+    database: str | None
+    orm: str | None
+    architecture: str
+
+    # Components
+    endpoints: list[IREndpoint] = field(default_factory=list)
+    dtos: list[IRDto] = field(default_factory=list)
+    entities: list[IREntity] = field(default_factory=list)
+    services: list[IRService] = field(default_factory=list)
+    repositories: list[IRRepository] = field(default_factory=list)
+    middlewares: list[IRMiddleware] = field(default_factory=list)
+    events: list[IREvent] = field(default_factory=list)
+    logic_blocks: list[IRLogicBlock] = field(default_factory=list)
+
+    # Connections (edge references)
+    connections: list[dict] = field(default_factory=list)  # [{from, to, type}]
+
+    def to_dict(self) -> dict:
+        """Serialize to dict for storage and template context."""
+        import dataclasses
+        return dataclasses.asdict(self)

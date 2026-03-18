@@ -1,0 +1,39 @@
+<?php
+
+namespace App\Entity;
+
+use App\Repository\{{ entity.name | pascal_case }}Repository;
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity(repositoryClass: {{ entity.name | pascal_case }}Repository::class)]
+#[ORM\Table(name: '{{ entity.table_name }}')]
+class {{ entity.name | pascal_case }}
+{
+{% for field in entity.fields %}
+{% if field.primary %}
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: '{{ field.type }}')]
+{% else %}
+    #[ORM\Column(type: '{{ field.type }}'{% if field.nullable %}, nullable: true{% endif %})]
+{% endif %}
+    private {{ field.type | php_type }}{% if field.nullable %}|null{% endif %} ${{ field.name }}{% if field.nullable %} = null{% endif %};
+
+{% endfor %}
+{% for field in entity.fields %}
+    public function get{{ field.name | pascal_case }}(): {{ field.type | php_type }}{% if field.nullable %}|null{% endif %}
+
+    {
+        return $this->{{ field.name }};
+    }
+
+{% if not field.primary %}
+    public function set{{ field.name | pascal_case }}({{ field.type | php_type }}{% if field.nullable %}|null{% endif %} ${{ field.name }}): static
+    {
+        $this->{{ field.name }} = ${{ field.name }};
+        return $this;
+    }
+
+{% endif %}
+{% endfor %}
+}
