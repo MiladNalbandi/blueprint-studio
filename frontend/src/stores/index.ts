@@ -34,6 +34,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
 interface FlowState {
   nodes: Node<FlowNodeData>[];
   edges: Edge[];
+  dirty: boolean;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
@@ -45,55 +46,64 @@ interface FlowState {
   deleteNode: (nodeId: string) => void;
   deleteEdge: (edgeId: string) => void;
   updateNodeData: (nodeId: string, data: Partial<FlowNodeData>) => void;
+  markClean: () => void;
   clear: () => void;
 }
 
 export const useFlowStore = create<FlowState>((set, get) => ({
   nodes: [],
   edges: [],
+  dirty: false,
 
   onNodesChange: (changes) => {
-    set({ nodes: applyNodeChanges(changes, get().nodes) as Node<FlowNodeData>[] });
+    set({ nodes: applyNodeChanges(changes, get().nodes) as Node<FlowNodeData>[], dirty: true });
   },
 
   onEdgesChange: (changes) => {
-    set({ edges: applyEdgeChanges(changes, get().edges) });
+    set({ edges: applyEdgeChanges(changes, get().edges), dirty: true });
   },
 
   onConnect: (connection) => {
-    set({ edges: addEdge(connection, get().edges) });
+    set({ edges: addEdge(connection, get().edges), dirty: true });
   },
 
+  // Data-loading setters — do NOT mark dirty
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
 
-  addNode: (node) => set((state) => ({ nodes: [...state.nodes, node] })),
+  // User-initiated mutations — mark dirty
+  addNode: (node) => set((state) => ({ nodes: [...state.nodes, node], dirty: true })),
 
-  addNodes: (nodes) => set((state) => ({ nodes: [...state.nodes, ...nodes] })),
+  addNodes: (nodes) => set((state) => ({ nodes: [...state.nodes, ...nodes], dirty: true })),
 
   addEdges: (edges) => set((state) => ({
     edges: [...state.edges, ...edges.map((e, i) => ({
       ...e,
       id: e.id || `edge_${Date.now()}_${i}`,
     }))],
+    dirty: true,
   })),
 
   deleteNode: (nodeId) => set((state) => ({
     nodes: state.nodes.filter((n) => n.id !== nodeId),
     edges: state.edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
+    dirty: true,
   })),
 
   deleteEdge: (edgeId) => set((state) => ({
     edges: state.edges.filter((e) => e.id !== edgeId),
+    dirty: true,
   })),
 
   updateNodeData: (nodeId, data) => set((state) => ({
     nodes: state.nodes.map((n) =>
       n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n
     ),
+    dirty: true,
   })),
 
-  clear: () => set({ nodes: [], edges: [] }),
+  markClean: () => set({ dirty: false }),
+  clear: () => set({ nodes: [], edges: [], dirty: false }),
 }));
 
 // ─── LLM Config Store ──────────────────────────────────

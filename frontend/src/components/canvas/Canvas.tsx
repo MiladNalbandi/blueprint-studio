@@ -16,6 +16,7 @@ import '@xyflow/react/dist/style.css';
 import FlowNode from './FlowNode';
 import { useFlowStore, useUIStore } from '@/stores';
 import { DEFAULT_NODE_CONFIGS } from '@/constants';
+import { useAutoSave } from '@/hooks/useAutoSave';
 import type { FlowNodeData, NodeType } from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,6 +25,7 @@ const nodeTypes = { flowNode: FlowNode } as any;
 let nodeIdCounter = 0;
 
 export default function Canvas() {
+  useAutoSave();
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode } = useFlowStore();
   const { selectNode, selectEdge } = useUIStore();
   const reactFlowInstance = useRef<ReactFlowInstance<Node<FlowNodeData>> | null>(null);

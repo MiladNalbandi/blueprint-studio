@@ -3,12 +3,14 @@
 import { useProjectStore, useLLMStore, useFlowStore, useUIStore } from '@/stores';
 import { LANGUAGES, ARCHITECTURES, LLM_PROVIDERS } from '@/constants';
 import { getTechIcon } from '@/lib/techIcons';
+import { useSaveAndNavigate } from '@/hooks/useSaveAndNavigate';
 
 export default function TopBar() {
   const { project } = useProjectStore();
   const { configs } = useLLMStore();
   const { nodes, edges } = useFlowStore();
-  const { setShowLLMSettings, setPhase } = useUIStore();
+  const { setShowLLMSettings } = useUIStore();
+  const saveAndNavigate = useSaveAndNavigate();
 
   const config = project?.config;
   const langDef = config ? LANGUAGES.find((l) => l.id === config.language) : null;
@@ -25,7 +27,7 @@ export default function TopBar() {
     >
       {/* Logo — clickable, returns to dashboard */}
       <button
-        onClick={() => setPhase('dashboard')}
+        onClick={() => saveAndNavigate('dashboard')}
         className="flex items-center gap-3 hover:opacity-80 transition-opacity"
         title="Back to dashboard"
       >
