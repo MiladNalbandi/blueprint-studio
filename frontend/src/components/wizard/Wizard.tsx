@@ -6,6 +6,7 @@ import { useProjectStore, useLLMStore, useUIStore } from '@/stores';
 import type { Language, WizardData, LLMWizardConfig } from '@/types';
 import { LLM_PROVIDERS } from '@/constants';
 import WizardStep from './WizardStep';
+import StepName from './StepName';
 import StepLanguage from './StepLanguage';
 import StepFramework from './StepFramework';
 import StepDatabase from './StepDatabase';
@@ -13,9 +14,10 @@ import StepORM from './StepORM';
 import StepArchitecture from './StepArchitecture';
 import StepLLMProvider, { defaultConfig } from './StepLLMProvider';
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 const STEP_META = [
+  { title: 'Name Your Project', subtitle: 'Give your project a memorable name' },
   { title: 'Choose Language', subtitle: 'Select the primary programming language for your project' },
   { title: 'Choose Framework', subtitle: 'Pick a framework that fits your needs' },
   { title: 'Choose Database', subtitle: 'Select your data storage solution' },
@@ -28,6 +30,7 @@ export default function Wizard() {
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [data, setData] = useState<WizardData>({
+    name: '',
     language: null,
     framework: null,
     database: null,
@@ -46,12 +49,13 @@ export default function Wizard() {
 
   const canProceed = (() => {
     switch (step) {
-      case 0: return !!data.language;
-      case 1: return !!data.framework;
-      case 2: return !!data.database;
-      case 3: return data.database === 'none' || !!data.orm;
-      case 4: return !!data.architecture;
-      case 5: return Object.values(data.llmProviders).some((c) => c.enabled);
+      case 0: return data.name.trim().length > 0;
+      case 1: return !!data.language;
+      case 2: return !!data.framework;
+      case 3: return !!data.database;
+      case 4: return data.database === 'none' || !!data.orm;
+      case 5: return !!data.architecture;
+      case 6: return Object.values(data.llmProviders).some((c) => c.enabled);
       default: return false;
     }
   })();
@@ -73,7 +77,7 @@ export default function Wizard() {
     setIsSubmitting(true);
     try {
       const project = await projectsApi.create(
-        `${data.framework}-${data.architecture}-project`,
+        data.name.trim(),
         {
           language: data.language!,
           framework: data.framework!,
@@ -115,16 +119,18 @@ export default function Wizard() {
   const renderStep = () => {
     switch (step) {
       case 0:
-        return <StepLanguage value={data.language} onChange={handleLanguageChange} />;
+        return <StepName value={data.name} onChange={(name) => update({ name })} />;
       case 1:
-        return <StepFramework language={data.language} value={data.framework} onChange={(fw) => update({ framework: fw })} />;
+        return <StepLanguage value={data.language} onChange={handleLanguageChange} />;
       case 2:
-        return <StepDatabase value={data.database} onChange={handleDatabaseChange} />;
+        return <StepFramework language={data.language} value={data.framework} onChange={(fw) => update({ framework: fw })} />;
       case 3:
-        return <StepORM language={data.language} database={data.database} value={data.orm} onChange={(orm) => update({ orm })} />;
+        return <StepDatabase value={data.database} onChange={handleDatabaseChange} />;
       case 4:
-        return <StepArchitecture value={data.architecture} onChange={(arch) => update({ architecture: arch })} />;
+        return <StepORM language={data.language} database={data.database} value={data.orm} onChange={(orm) => update({ orm })} />;
       case 5:
+        return <StepArchitecture value={data.architecture} onChange={(arch) => update({ architecture: arch })} />;
+      case 6:
         return (
           <StepLLMProvider
             configs={data.llmProviders}

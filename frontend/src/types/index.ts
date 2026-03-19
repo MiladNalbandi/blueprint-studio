@@ -63,6 +63,7 @@ export interface LLMWizardConfig {
 }
 
 export interface WizardData {
+  name: string;
   language: Language | null;
   framework: string | null;
   database: string | null;
