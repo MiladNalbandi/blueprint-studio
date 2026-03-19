@@ -147,7 +147,7 @@ export default function Canvas() {
           }}
           maskColor="rgba(0,0,0,0.75)"
         />
-        <Background variant={BackgroundVariant.Dots} gap={30} size={1} color="rgba(249, 115, 22, 0.06)" />
+        <Background variant={BackgroundVariant.Lines} gap={30} size={1} color="rgba(249, 115, 22, 0.06)" />
       </ReactFlow>
     </div>
   );

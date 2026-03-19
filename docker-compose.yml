@@ -39,9 +39,14 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5173:5173"
+    environment:
+      - VITE_API_TARGET=http://api:8000
+    depends_on:
+      - api
     volumes:
       - ./frontend/src:/app/src
-    command: npm run dev -- --host 0.0.0.0
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
 
   postgres:
     image: postgres:16-alpine

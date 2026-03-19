@@ -8,7 +8,7 @@ export default function TopBar() {
   const { project } = useProjectStore();
   const { configs } = useLLMStore();
   const { nodes, edges } = useFlowStore();
-  const { setShowLLMSettings } = useUIStore();
+  const { setShowLLMSettings, setPhase } = useUIStore();
 
   const config = project?.config;
   const langDef = config ? LANGUAGES.find((l) => l.id === config.language) : null;
@@ -23,11 +23,17 @@ export default function TopBar() {
         boxShadow: '0 1px 8px rgba(0,0,0,0.3)',
       }}
     >
-      {/* Logo */}
-      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style={{ background: 'var(--forge-glow)', border: '1px solid rgba(249,115,22,0.25)' }}>
-        ⚒️
-      </div>
-      <span className="text-zinc-100 font-bold text-sm font-display tracking-wide">FlowForge</span>
+      {/* Logo — clickable, returns to dashboard */}
+      <button
+        onClick={() => setPhase('dashboard')}
+        className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+        title="Back to dashboard"
+      >
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style={{ background: 'var(--forge-glow)', border: '1px solid rgba(249,115,22,0.25)' }}>
+          ⚒️
+        </div>
+        <span className="text-zinc-100 font-bold text-sm font-display tracking-wide">FlowForge</span>
+      </button>
       <div className="w-px h-5" style={{ background: 'var(--border)' }} />
 
       {/* Config badges */}
@@ -70,7 +76,7 @@ export default function TopBar() {
               className="text-[10px] font-mono px-2 py-0.5 rounded-md border flex items-center gap-1.5 font-medium"
               style={{ color: provDef.color, borderColor: `${provDef.color}30`, background: `${provDef.color}08` }}
             >
-              {provDef.icon} {cfg.model.split('/').pop()?.split('-').slice(0, 2).join('-') || cfg.model}
+              {getTechIcon(provDef.id) ?? provDef.icon} {cfg.model.split('/').pop()?.split('-').slice(0, 2).join('-') || cfg.model}
               <div
                 className="w-1.5 h-1.5 rounded-full"
                 style={{ background: cfg.has_api_key ? '#22c55e' : '#f59e0b', boxShadow: cfg.has_api_key ? '0 0 6px #22c55e40' : '0 0 6px #f59e0b40' }}

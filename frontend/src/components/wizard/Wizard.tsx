@@ -138,12 +138,18 @@ export default function Wizard() {
 
   return (
     <div>
-      {/* Logo header */}
+      {/* Logo header — clickable, returns to dashboard */}
       <div className="fixed top-0 left-0 right-0 z-20 flex items-center gap-3 px-6 py-4">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ background: 'var(--forge-glow)', border: '1px solid rgba(249,115,22,0.3)' }}>
-          ⚒️
-        </div>
-        <span className="text-zinc-100 font-bold text-sm font-display tracking-wide">FlowForge</span>
+        <button
+          onClick={() => setPhase('dashboard')}
+          className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+          title="Back to dashboard"
+        >
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ background: 'var(--forge-glow)', border: '1px solid rgba(249,115,22,0.3)' }}>
+            ⚒️
+          </div>
+          <span className="text-zinc-100 font-bold text-sm font-display tracking-wide">FlowForge</span>
+        </button>
       </div>
 
       <WizardStep

@@ -28,6 +28,9 @@ import {
   SiDoctrine,
   SiSqlalchemy,
   SiTypeorm,
+  SiClaude,
+  SiOpenai,
+  SiGooglegemini,
 } from 'react-icons/si';
 import { FaJava } from 'react-icons/fa';
 
@@ -64,6 +67,10 @@ const TECH_ICONS: Record<string, ReactNode> = {
   'django-orm': <SiDjango />,
   doctrine: <SiDoctrine />,
   hibernate: <SiHibernate />,
+  // LLM Providers
+  claude: <SiClaude />,
+  openai: <SiOpenai />,
+  gemini: <SiGooglegemini />,
 };
 
 /** Returns the official SVG icon for a tech id, or null if unavailable. */

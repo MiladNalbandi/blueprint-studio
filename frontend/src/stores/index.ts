@@ -144,7 +144,7 @@ export const useChatStore = create<ChatState>((set) => ({
 
 // ─── UI Store ───────────────────────────────────────────
 
-type Phase = 'wizard' | 'canvas';
+type Phase = 'dashboard' | 'wizard' | 'canvas';
 
 interface UIState {
   phase: Phase;
@@ -162,7 +162,7 @@ interface UIState {
 }
 
 export const useUIStore = create<UIState>((set) => ({
-  phase: 'wizard',
+  phase: 'dashboard',
   sidebarCollapsed: false,
   selectedNodeId: null,
   selectedEdgeId: null,

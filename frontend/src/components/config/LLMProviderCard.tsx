@@ -2,6 +2,7 @@
 
 import type { LLMProviderDef } from '@/constants';
 import type { LLMWizardConfig } from '@/types';
+import { getTechIcon } from '@/lib/techIcons';
 
 interface Props {
   provider: LLMProviderDef;
@@ -26,7 +27,7 @@ export default function LLMProviderCard({ provider, config, onToggle, onUpdate }
     >
       {/* Header with toggle */}
       <div className="flex items-center gap-3 px-4 py-3.5">
-        <span className="text-xl">{provider.icon}</span>
+        <span className="text-xl" style={{ color: provider.color }}>{getTechIcon(provider.id) ?? provider.icon}</span>
         <span className="text-sm font-bold text-zinc-100 font-display tracking-wide flex-1">{provider.name}</span>
         <button
           onClick={onToggle}

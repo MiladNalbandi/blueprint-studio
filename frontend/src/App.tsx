@@ -1,7 +1,8 @@
-/** FlowForge App — routes between wizard and canvas phases. */
+/** FlowForge App — routes between dashboard, wizard, and canvas phases. */
 
 import { ReactFlowProvider } from '@xyflow/react';
 import { useUIStore } from '@/stores';
+import ProjectDashboard from '@/components/dashboard/ProjectDashboard';
 import Wizard from '@/components/wizard/Wizard';
 import TopBar from '@/components/canvas/TopBar';
 import Canvas from '@/components/canvas/Canvas';
@@ -35,5 +36,7 @@ function CanvasView() {
 
 export default function App() {
   const { phase } = useUIStore();
-  return phase === 'wizard' ? <Wizard /> : <CanvasView />;
+  if (phase === 'dashboard') return <ProjectDashboard />;
+  if (phase === 'wizard') return <Wizard />;
+  return <CanvasView />;
 }

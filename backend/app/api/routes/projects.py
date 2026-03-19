@@ -12,7 +12,7 @@ from app.ports.interfaces import ProjectRepositoryPort
 router = APIRouter()
 
 
-@router.post("/", response_model=ProjectResponse, status_code=201)
+@router.post("", response_model=ProjectResponse, status_code=201)
 async def create_project(body: ProjectCreate, repo: ProjectRepositoryPort = Depends(get_repository)):
     project = Project(
         name=body.name,
@@ -28,7 +28,7 @@ async def create_project(body: ProjectCreate, repo: ProjectRepositoryPort = Depe
     return _to_response(saved)
 
 
-@router.get("/", response_model=list[ProjectResponse])
+@router.get("", response_model=list[ProjectResponse])
 async def list_projects(repo: ProjectRepositoryPort = Depends(get_repository)):
     projects = await repo.list_all()
     return [_to_response(p) for p in projects]
