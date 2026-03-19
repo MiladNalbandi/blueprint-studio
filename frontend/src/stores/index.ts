@@ -12,6 +12,8 @@ import {
   addEdge,
 } from '@xyflow/react';
 import type { Project, LLMConfig, ChatMessage, FlowNodeData } from '@/types';
+import { flowsApi } from '@/api/client';
+import { toBackendFlow } from '@/lib/flowTransform';
 
 // ─── Project Store ──────────────────────────────────────
 
@@ -154,7 +156,19 @@ export const useChatStore = create<ChatState>((set) => ({
 
 // ─── UI Store ───────────────────────────────────────────
 
-type Phase = 'dashboard' | 'wizard' | 'canvas';
+export type Phase = 'dashboard' | 'wizard' | 'canvas';
+
+const PHASE_PATHS: Record<Phase, string> = {
+  dashboard: '/',
+  wizard: '/new',
+  canvas: '/canvas',
+};
+
+function phaseFromPath(path: string): Phase {
+  if (path === '/new') return 'wizard';
+  if (path === '/canvas') return 'canvas';
+  return 'dashboard';
+}
 
 interface UIState {
   phase: Phase;
@@ -163,7 +177,10 @@ interface UIState {
   selectedEdgeId: string | null;
   showConfigPanel: boolean;
   showLLMSettings: boolean;
+  /** Push a new history entry and update phase. */
   setPhase: (phase: Phase) => void;
+  /** Update phase from popstate (no history push). */
+  _syncPhase: (phase: Phase) => void;
   toggleSidebar: () => void;
   selectNode: (nodeId: string | null) => void;
   selectEdge: (edgeId: string | null) => void;
@@ -172,16 +189,43 @@ interface UIState {
 }
 
 export const useUIStore = create<UIState>((set) => ({
-  phase: 'dashboard',
+  phase: phaseFromPath(window.location.pathname),
   sidebarCollapsed: false,
   selectedNodeId: null,
   selectedEdgeId: null,
   showConfigPanel: false,
   showLLMSettings: false,
-  setPhase: (phase) => set({ phase }),
+  setPhase: (phase) => {
+    window.history.pushState({ phase }, '', PHASE_PATHS[phase]);
+    set({ phase });
+  },
+  _syncPhase: (phase) => set({ phase }),
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
   selectNode: (nodeId) => set({ selectedNodeId: nodeId, selectedEdgeId: null, showConfigPanel: !!nodeId }),
   selectEdge: (edgeId) => set({ selectedEdgeId: edgeId, selectedNodeId: null, showConfigPanel: false }),
   setShowConfigPanel: (show) => set({ showConfigPanel: show }),
   setShowLLMSettings: (show) => set({ showLLMSettings: show }),
 }));
+
+// Seed initial history state so the first back press works
+window.history.replaceState(
+  { phase: phaseFromPath(window.location.pathname) },
+  '',
+);
+
+// Listen for browser back/forward
+window.addEventListener('popstate', (event) => {
+  const prevPhase = useUIStore.getState().phase;
+  const nextPhase: Phase = event.state?.phase ?? phaseFromPath(window.location.pathname);
+
+  // Save flow when navigating away from canvas via browser back/forward
+  if (prevPhase === 'canvas' && nextPhase !== 'canvas') {
+    const project = useProjectStore.getState().project;
+    const { nodes, edges, dirty, markClean } = useFlowStore.getState();
+    if (project && dirty) {
+      flowsApi.save(project.id, toBackendFlow(nodes, edges)).then(markClean).catch(console.error);
+    }
+  }
+
+  useUIStore.getState()._syncPhase(nextPhase);
+});
