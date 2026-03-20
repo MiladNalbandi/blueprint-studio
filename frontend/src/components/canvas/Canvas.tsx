@@ -78,12 +78,15 @@ export default function Canvas() {
       y: event.clientY,
     });
 
+    const existingCount = nodes.filter(n => n.data.nodeType === nodeType).length;
+    const label = `${nodeType}_${existingCount + 1}`;
+
     const newNode: Node<FlowNodeData> = {
       id: `node_${++nodeIdCounter}_${Date.now()}`,
       type: 'flowNode',
       position,
       data: {
-        label: '',
+        label,
         nodeType,
         config: { ...DEFAULT_NODE_CONFIGS[nodeType] },
       },
@@ -91,7 +94,7 @@ export default function Canvas() {
 
     addNode(newNode);
     selectNode(newNode.id);
-  }, [addNode, selectNode]);
+  }, [nodes, addNode, selectNode]);
 
   return (
     <div
@@ -126,6 +129,7 @@ export default function Canvas() {
         onInit={(instance: ReactFlowInstance<Node<FlowNodeData>>) => { reactFlowInstance.current = instance; }}
         nodeTypes={nodeTypes}
         fitView
+        fitViewOptions={{ maxZoom: 1, padding: 0.3 }}
         deleteKeyCode={['Backspace', 'Delete']}
         style={{ background: 'var(--surface-0)' }}
         defaultEdgeOptions={{
