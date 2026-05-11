@@ -2,7 +2,7 @@
 
 **Design backend APIs visually, generate production code in your favorite stack.**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/)
 [![Node 22+](https://img.shields.io/badge/node-22%2B-green.svg)](https://nodejs.org/)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-orange.svg)]()
@@ -216,4 +216,12 @@ Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the dev se
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+**GNU Affero General Public License v3.0** — see [LICENSE](LICENSE).
+
+AGPL-3.0 is a strong copyleft license. In plain language:
+
+- You can use, study, modify, and redistribute this project freely.
+- If you **distribute** a modified version, you must release your changes under AGPL-3.0.
+- If you **run** a modified version on a network server that users interact with (e.g. a hosted SaaS), you must also release the source of your modifications to those users — the same applies. This closes the "SaaS loophole" that regular GPL leaves open.
+
+If AGPL-3.0 is incompatible with your use case, open a discussion — commercial / dual-licensing arrangements may be possible.
