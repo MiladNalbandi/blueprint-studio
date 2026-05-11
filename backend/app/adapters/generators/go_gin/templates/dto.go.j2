@@ -1,0 +1,40 @@
+package dto
+
+{% set needs_time = [] %}
+{% for field in dto.fields %}
+{% if field.type in ['date', 'datetime'] %}
+{% if needs_time.append(true) %}{% endif %}
+{% endif %}
+{% endfor %}
+{% if needs_time %}
+import "time"
+{% endif %}
+
+// Create{{ entity_name }}Request is the request body for creating a {{ entity_name }}.
+type Create{{ entity_name }}Request struct {
+{% for field in dto.fields %}
+{% if not field.primary %}
+{% if field.nullable %}
+	{{ field.name | pascal_case }}  *{{ field.type | go_type }}  `json:"{{ field.name }},omitempty"`
+{% else %}
+	{{ field.name | pascal_case }}  {{ field.type | go_type }}  `json:"{{ field.name }}" binding:"required"`
+{% endif %}
+{% endif %}
+{% endfor %}
+}
+
+// Update{{ entity_name }}Request is the request body for updating a {{ entity_name }}.
+type Update{{ entity_name }}Request struct {
+{% for field in dto.fields %}
+{% if not field.primary %}
+	{{ field.name | pascal_case }}  *{{ field.type | go_type }}  `json:"{{ field.name }},omitempty"`
+{% endif %}
+{% endfor %}
+}
+
+// {{ entity_name }}Response is the response body for a {{ entity_name }}.
+type {{ entity_name }}Response struct {
+{% for field in dto.fields %}
+	{{ field.name | pascal_case }}  {{ field.type | go_type }}  `json:"{{ field.name }}"`
+{% endfor %}
+}

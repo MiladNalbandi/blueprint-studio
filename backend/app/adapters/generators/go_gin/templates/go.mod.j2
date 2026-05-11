@@ -1,0 +1,9 @@
+module {{ ir.project_name | default('flowforge-generated', true) }}
+
+go 1.22
+
+require (
+{% for dep in ir.dependencies %}
+	{{ dep.name }} {{ dep.version }}
+{% endfor %}
+)

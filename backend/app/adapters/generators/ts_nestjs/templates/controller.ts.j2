@@ -1,0 +1,89 @@
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param } from '@nestjs/common';
+{% set all_services = [] %}
+{% set all_dtos = [] %}
+{% for ep in endpoints %}
+{% set svc_name = ep.service_name | pascal_case if ep.service_name else '' %}
+{% if svc_name and not svc_name.endswith('Service') %}{% set svc_name = svc_name ~ 'Service' %}{% endif %}
+{% if svc_name and svc_name not in all_services %}
+{% if all_services.append(svc_name) %}{% endif %}
+{% endif %}
+{% set dto_name = ep.request_dto_name | pascal_case if ep.request_dto_name else '' %}
+{% if dto_name and dto_name not in all_dtos %}
+{% if all_dtos.append(dto_name) %}{% endif %}
+{% endif %}
+{% endfor %}
+{% for svc in all_services %}
+import { {{ svc }} } from './{{ svc | kebab_case }}.service';
+{% endfor %}
+{% for dto in all_dtos %}
+import { Create{{ dto }}Dto } from './dto/create-{{ dto | kebab_case }}.dto';
+{% endfor %}
+
+@Controller('{{ base_path }}')
+export class {{ route_name | pascal_case }}Controller {
+  constructor(
+{% for svc in all_services %}
+    private readonly {{ svc | camel_case }}: {{ svc }},
+{% endfor %}
+  ) {}
+
+{% for ep in endpoints %}
+{% set svc_name = ep.service_name | pascal_case if ep.service_name else '' %}
+{% if svc_name and not svc_name.endswith('Service') %}{% set svc_name = svc_name ~ 'Service' %}{% endif %}
+{% set dto_name = ep.request_dto_name | pascal_case if ep.request_dto_name else '' %}
+{% set sub_path = ep.path.replace('/' ~ base_path, '', 1) if base_path and ep.path.startswith('/' ~ base_path) else ep.path %}
+{% set sub_path = sub_path.lstrip('/') %}
+{% set sub_path = sub_path.replace('{', ':').replace('}', '') %}
+{% if ep.method == 'GET' %}
+  @Get({% if sub_path %}'{{ sub_path }}'{% endif %})
+  async {{ ep.service_method | camel_case if ep.service_method else 'get' ~ loop.index | string }}({% if ':' in sub_path %}@Param('id') id: string{% endif %}) {
+{% if svc_name %}
+    // TODO: call {{ svc_name | camel_case }}
+    return [];
+{% else %}
+    return [];
+{% endif %}
+  }
+{% elif ep.method == 'POST' %}
+  @Post({% if sub_path %}'{{ sub_path }}'{% endif %})
+  async {{ ep.service_method | camel_case if ep.service_method else 'create' ~ loop.index | string }}(
+    @Body() {{ 'create' ~ dto_name ~ 'Dto' if dto_name else 'body' }}: {{ 'Create' ~ dto_name ~ 'Dto' if dto_name else 'Record<string, unknown>' }},
+  ) {
+{% if svc_name %}
+    // TODO: call {{ svc_name | camel_case }}
+    return {{ 'create' ~ dto_name ~ 'Dto' if dto_name else 'body' }};
+{% else %}
+    return {{ 'create' ~ dto_name ~ 'Dto' if dto_name else 'body' }};
+{% endif %}
+  }
+{% elif ep.method in ['PUT', 'PATCH'] %}
+  @{{ 'Put' if ep.method == 'PUT' else 'Patch' }}({% if sub_path %}'{{ sub_path }}'{% endif %})
+  async {{ ep.service_method | camel_case if ep.service_method else 'update' ~ loop.index | string }}(
+    @Param('id') id: string,
+    @Body() {{ 'create' ~ dto_name ~ 'Dto' if dto_name else 'body' }}: {{ 'Create' ~ dto_name ~ 'Dto' if dto_name else 'Record<string, unknown>' }},
+  ) {
+{% if svc_name %}
+    // TODO: call {{ svc_name | camel_case }}
+    return {{ 'create' ~ dto_name ~ 'Dto' if dto_name else 'body' }};
+{% else %}
+    return {{ 'create' ~ dto_name ~ 'Dto' if dto_name else 'body' }};
+{% endif %}
+  }
+{% elif ep.method == 'DELETE' %}
+  @Delete({% if sub_path %}'{{ sub_path }}'{% endif %})
+  async {{ ep.service_method | camel_case if ep.service_method else 'remove' ~ loop.index | string }}(@Param('id') id: string) {
+{% if svc_name %}
+    // TODO: call {{ svc_name | camel_case }}
+{% endif %}
+    return;
+  }
+{% else %}
+  @Get({% if sub_path %}'{{ sub_path }}'{% endif %})
+  async {{ ep.service_method | camel_case if ep.service_method else 'handle' ~ loop.index | string }}() {
+    // TODO: implement {{ ep.method }} {{ ep.path }}
+    return { message: 'TODO: implement' };
+  }
+{% endif %}
+
+{% endfor %}
+}

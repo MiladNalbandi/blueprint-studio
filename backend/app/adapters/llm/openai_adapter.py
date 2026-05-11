@@ -13,7 +13,7 @@ class OpenAIAdapter(LLMProviderPort):
         self.model = model
         self.temperature = temperature
 
-    async def chat(self, messages: list[dict], system: str = "") -> str:
+    async def chat(self, messages: list[dict], system: str = "", max_tokens: int | None = None) -> str:
         msgs = []
         if system:
             msgs.append({"role": "system", "content": system})
@@ -23,7 +23,7 @@ class OpenAIAdapter(LLMProviderPort):
             model=self.model,
             messages=msgs,
             temperature=self.temperature,
-            max_tokens=4096,
+            max_tokens=max_tokens or 4096,
         )
         return response.choices[0].message.content or ""
 

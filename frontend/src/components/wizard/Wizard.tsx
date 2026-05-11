@@ -1,25 +1,27 @@
-/** Wizard orchestrator — manages 6-step project setup flow with forge aesthetic. */
+/** Wizard orchestrator — manages 8-step project setup flow with forge aesthetic. */
 
 import { useState } from 'react';
 import { projectsApi, llmApi } from '@/api/client';
 import { useProjectStore, useLLMStore, useUIStore } from '@/stores';
 import type { Language, WizardData, LLMWizardConfig } from '@/types';
-import { LLM_PROVIDERS } from '@/constants';
+import { LLM_PROVIDERS, PACKAGE_MANAGERS } from '@/constants';
 import WizardStep from './WizardStep';
 import StepName from './StepName';
 import StepLanguage from './StepLanguage';
 import StepFramework from './StepFramework';
+import StepPackageManager from './StepPackageManager';
 import StepDatabase from './StepDatabase';
 import StepORM from './StepORM';
 import StepArchitecture from './StepArchitecture';
 import StepLLMProvider, { defaultConfig } from './StepLLMProvider';
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 const STEP_META = [
   { title: 'Name Your Project', subtitle: 'Give your project a memorable name' },
   { title: 'Choose Language', subtitle: 'Select the primary programming language for your project' },
   { title: 'Choose Framework', subtitle: 'Pick a framework that fits your needs' },
+  { title: 'Choose Package Manager', subtitle: 'Select your dependency management tool' },
   { title: 'Choose Database', subtitle: 'Select your data storage solution' },
   { title: 'Choose ORM', subtitle: 'Pick a data access layer for your database' },
   { title: 'Choose Architecture', subtitle: 'Define the structural pattern for your codebase' },
@@ -33,6 +35,7 @@ export default function Wizard() {
     name: '',
     language: null,
     framework: null,
+    packageManager: null,
     database: null,
     orm: null,
     architecture: null,
@@ -52,16 +55,19 @@ export default function Wizard() {
       case 0: return data.name.trim().length > 0;
       case 1: return !!data.language;
       case 2: return !!data.framework;
-      case 3: return !!data.database;
-      case 4: return data.database === 'none' || !!data.orm;
-      case 5: return !!data.architecture;
-      case 6: return Object.values(data.llmProviders).some((c) => c.enabled);
+      case 3: return !!data.packageManager;
+      case 4: return !!data.database;
+      case 5: return data.database === 'none' || !!data.orm;
+      case 6: return !!data.architecture;
+      case 7: return Object.values(data.llmProviders).some((c) => c.enabled);
       default: return false;
     }
   })();
 
   const handleLanguageChange = (lang: Language) => {
-    update({ language: lang, framework: null, orm: null });
+    const managers = PACKAGE_MANAGERS[lang];
+    const autoSelect = managers.length === 1 ? managers[0].id : null;
+    update({ language: lang, framework: null, packageManager: autoSelect, orm: null });
   };
 
   const handleDatabaseChange = (db: string) => {
@@ -84,6 +90,7 @@ export default function Wizard() {
           database: data.database === 'none' ? null : data.database,
           orm: data.orm,
           architecture: data.architecture!,
+          package_manager: data.packageManager,
         }
       );
       setProject(project);
@@ -103,10 +110,10 @@ export default function Wizard() {
         )
       );
       setConfigs(configs);
-      setPhase('canvas');
+      setPhase('canvas', project.id);
     } catch (err) {
       console.error('Failed to create project:', err);
-      setPhase('canvas');
+      setPhase('dashboard');
     } finally {
       setIsSubmitting(false);
     }
@@ -125,12 +132,14 @@ export default function Wizard() {
       case 2:
         return <StepFramework language={data.language} value={data.framework} onChange={(fw) => update({ framework: fw })} />;
       case 3:
-        return <StepDatabase value={data.database} onChange={handleDatabaseChange} />;
+        return <StepPackageManager language={data.language} value={data.packageManager} onChange={(pm) => update({ packageManager: pm })} />;
       case 4:
-        return <StepORM language={data.language} database={data.database} value={data.orm} onChange={(orm) => update({ orm })} />;
+        return <StepDatabase value={data.database} onChange={handleDatabaseChange} />;
       case 5:
-        return <StepArchitecture value={data.architecture} onChange={(arch) => update({ architecture: arch })} />;
+        return <StepORM language={data.language} database={data.database} value={data.orm} onChange={(orm) => update({ orm })} />;
       case 6:
+        return <StepArchitecture value={data.architecture} onChange={(arch) => update({ architecture: arch })} />;
+      case 7:
         return (
           <StepLLMProvider
             configs={data.llmProviders}

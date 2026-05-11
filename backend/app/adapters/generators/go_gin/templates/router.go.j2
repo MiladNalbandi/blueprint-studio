@@ -1,0 +1,57 @@
+package router
+
+import (
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+
+	"{{ ir.project_name | default('flowforge-generated', true) }}/internal/handler"
+	"{{ ir.project_name | default('flowforge-generated', true) }}/internal/repository"
+	"{{ ir.project_name | default('flowforge-generated', true) }}/internal/service"
+)
+
+// SetupRouter initialises all routes and returns the Gin engine.
+func SetupRouter(db *gorm.DB) *gin.Engine {
+	r := gin.Default()
+
+{% for route_name, endpoints in route_groups.items() %}
+{% set handler_var = route_name | camel_case ~ "Handler" %}
+{% set handler_type = route_name | pascal_case %}
+{% set all_services = [] %}
+{% for ep in endpoints %}
+{% set svc = ep.service_name | pascal_case if ep.service_name else '' %}
+{% if svc and not svc.endswith('Service') %}{% set svc = svc ~ 'Service' %}{% endif %}
+{% if svc and svc not in all_services %}{% if all_services.append(svc) %}{% endif %}{% endif %}
+{% endfor %}
+{% set svc_name = all_services[0] if all_services else '' %}
+	// --- {{ handler_type }} ---
+{% if svc_name %}
+{% set entity_guess = svc_name | strip_prefix('') %}
+{% set repo_var = route_name | camel_case ~ "Repo" %}
+{% set svc_var = route_name | camel_case ~ "Svc" %}
+	{{ repo_var }} := repository.New{{ handler_type }}Repository(db)
+	{{ svc_var }} := service.New{{ svc_name }}({{ repo_var }})
+	{{ handler_var }} := handler.New{{ handler_type }}Handler({{ svc_var }})
+{% else %}
+	{{ handler_var }} := handler.New{{ handler_type }}Handler()
+{% endif %}
+{% for ep in endpoints %}
+{% if ep.method == 'GET' %}
+{% if '/{' in ep.path or '/:' in ep.path %}
+	r.GET("{{ ep.path | replace('{', ':') | replace('}', '') }}", {{ handler_var }}.GetByID)
+{% else %}
+	r.GET("{{ ep.path }}", {{ handler_var }}.List)
+{% endif %}
+{% elif ep.method == 'POST' %}
+	r.POST("{{ ep.path }}", {{ handler_var }}.Create)
+{% elif ep.method in ['PUT', 'PATCH'] %}
+	r.{{ ep.method }}("{{ ep.path | replace('{', ':') | replace('}', '') }}", {{ handler_var }}.Update)
+{% elif ep.method == 'DELETE' %}
+	r.DELETE("{{ ep.path | replace('{', ':') | replace('}', '') }}", {{ handler_var }}.Delete)
+{% else %}
+	r.Handle("{{ ep.method }}", "{{ ep.path | replace('{', ':') | replace('}', '') }}", {{ handler_var }}.Handle{{ ep.method }})
+{% endif %}
+{% endfor %}
+
+{% endfor %}
+	return r
+}

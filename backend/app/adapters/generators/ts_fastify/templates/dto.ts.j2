@@ -1,0 +1,24 @@
+export interface {{ dto.name | pascal_case }} {
+{% for field in dto.fields %}
+  {{ field.name }}{% if field.nullable %}?{% endif %}: {{ field.type | ts_type }};
+{% endfor %}
+}
+
+/** JSON Schema for Fastify request validation. */
+export const {{ dto.name | pascal_case }}Schema = {
+  type: 'object' as const,
+  properties: {
+{% for field in dto.fields %}
+    {{ field.name }}: { type: '{{ field.type | json_schema_type }}' },
+{% endfor %}
+  },
+{% set required_fields = [] %}
+{% for field in dto.fields %}
+{% if not field.nullable %}
+{% if required_fields.append(field.name) %}{% endif %}
+{% endif %}
+{% endfor %}
+{% if required_fields %}
+  required: [{{ required_fields | map('tojson') | join(', ') }}],
+{% endif %}
+} as const;

@@ -1,0 +1,135 @@
+{
+  "id": "search_filter",
+  "name": "Search & Filter",
+  "description": "Search, filter, and paginated list pattern with query DTOs and dedicated service methods.",
+  "icon": "search",
+  "nodes": [
+    {
+      "tempId": "entity-item",
+      "type": "entity",
+      "label": "Item",
+      "position": { "x": 900, "y": 200 },
+      "config": {
+        "tableName": "items",
+        "fields": [
+          { "name": "id", "type": "integer", "primary": true },
+          { "name": "name", "type": "string" },
+          { "name": "category", "type": "string" },
+          { "name": "price", "type": "decimal" },
+          { "name": "created_at", "type": "datetime" }
+        ],
+        "relations": [],
+        "indexes": [
+          { "columns": ["category"], "unique": false, "name": "idx_items_category" },
+          { "columns": ["price"], "unique": false, "name": "idx_items_price" }
+        ]
+      }
+    },
+    {
+      "tempId": "endpoint-search",
+      "type": "endpoint",
+      "label": "Search",
+      "position": { "x": 0, "y": 0 },
+      "config": {
+        "method": "GET",
+        "path": "/api/search",
+        "description": "Full-text search across items"
+      }
+    },
+    {
+      "tempId": "endpoint-filter",
+      "type": "endpoint",
+      "label": "Filter Items",
+      "position": { "x": 0, "y": 200 },
+      "config": {
+        "method": "GET",
+        "path": "/api/items?category=&min_price=&max_price=",
+        "description": "Filter items by category and price range"
+      }
+    },
+    {
+      "tempId": "endpoint-paginated",
+      "type": "endpoint",
+      "label": "Paginated List",
+      "position": { "x": 0, "y": 400 },
+      "config": {
+        "method": "GET",
+        "path": "/api/items?page=&limit=",
+        "description": "Paginated list of items"
+      }
+    },
+    {
+      "tempId": "dto-search-query",
+      "type": "dto",
+      "label": "SearchQueryDTO",
+      "position": { "x": 250, "y": 100 },
+      "config": {
+        "fields": [
+          { "name": "query", "type": "string" },
+          { "name": "filters", "type": "object" },
+          { "name": "page", "type": "integer" },
+          { "name": "limit", "type": "integer" }
+        ],
+        "description": "Search and pagination query parameters"
+      }
+    },
+    {
+      "tempId": "service-item",
+      "type": "service",
+      "label": "ItemService",
+      "position": { "x": 500, "y": 200 },
+      "config": {
+        "name": "ItemService",
+        "methods": ["search", "filter", "paginate"],
+        "description": "Search, filter, and pagination business logic"
+      }
+    },
+    {
+      "tempId": "repo-item",
+      "type": "repository",
+      "label": "ItemRepository",
+      "position": { "x": 700, "y": 200 },
+      "config": {
+        "entity": "Item",
+        "methods": ["findAll", "findById", "search", "filterBy", "save", "delete"]
+      }
+    },
+    {
+      "tempId": "response-200",
+      "type": "response",
+      "label": "200 OK",
+      "position": { "x": 300, "y": 400 },
+      "config": {
+        "status": 200,
+        "type": "json",
+        "description": "Successful search/filter/list response with pagination metadata"
+      }
+    },
+    {
+      "tempId": "response-400",
+      "type": "response",
+      "label": "400 Bad Request",
+      "position": { "x": 300, "y": 500 },
+      "config": {
+        "status": 400,
+        "type": "json",
+        "description": "Invalid query parameters"
+      }
+    }
+  ],
+  "edges": [
+    { "source": "endpoint-search", "target": "dto-search-query", "label": "validates" },
+    { "source": "endpoint-filter", "target": "dto-search-query", "label": "validates" },
+    { "source": "endpoint-paginated", "target": "dto-search-query", "label": "validates" },
+    { "source": "endpoint-search", "target": "service-item", "label": "search" },
+    { "source": "endpoint-filter", "target": "service-item", "label": "filter" },
+    { "source": "endpoint-paginated", "target": "service-item", "label": "paginate" },
+    { "source": "service-item", "target": "repo-item", "label": "uses" },
+    { "source": "repo-item", "target": "entity-item", "label": "maps" },
+    { "source": "endpoint-search", "target": "response-200", "label": "returns" },
+    { "source": "endpoint-search", "target": "response-400", "label": "invalid query" },
+    { "source": "endpoint-filter", "target": "response-200", "label": "returns" },
+    { "source": "endpoint-filter", "target": "response-400", "label": "invalid params" },
+    { "source": "endpoint-paginated", "target": "response-200", "label": "returns" }
+  ]
+}

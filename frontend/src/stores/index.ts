@@ -11,8 +11,8 @@ import {
   applyEdgeChanges,
   addEdge,
 } from '@xyflow/react';
-import type { Project, LLMConfig, ChatMessage, FlowNodeData } from '@/types';
-import { flowsApi } from '@/api/client';
+import type { Project, LLMConfig, ChatMessage, ChatSession, FlowNodeData } from '@/types';
+import { flowsApi, chatApi } from '@/api/client';
 import { toBackendFlow } from '@/lib/flowTransform';
 
 // ─── Project Store ──────────────────────────────────────
@@ -133,6 +133,8 @@ export const useLLMStore = create<LLMState>((set) => ({
 // ─── Chat Store ─────────────────────────────────────────
 
 interface ChatState {
+  sessions: ChatSession[];
+  activeSessionId: string | null;
   messages: ChatMessage[];
   isLoading: boolean;
   isOpen: boolean;
@@ -140,10 +142,20 @@ interface ChatState {
   setMessages: (messages: ChatMessage[]) => void;
   setLoading: (loading: boolean) => void;
   setOpen: (open: boolean) => void;
+  toggleOpen: () => void;
+  setSessions: (sessions: ChatSession[]) => void;
+  setActiveSessionId: (id: string | null) => void;
+  loadSessions: (projectId: string) => Promise<void>;
+  createSession: (projectId: string) => Promise<ChatSession>;
+  selectSession: (projectId: string, sessionId: string) => Promise<void>;
+  deleteSession: (projectId: string, sessionId: string) => Promise<void>;
+  renameSession: (projectId: string, sessionId: string, title: string) => Promise<void>;
   clear: () => void;
 }
 
-export const useChatStore = create<ChatState>((set) => ({
+export const useChatStore = create<ChatState>((set, get) => ({
+  sessions: [],
+  activeSessionId: null,
   messages: [],
   isLoading: false,
   isOpen: false,
@@ -151,23 +163,91 @@ export const useChatStore = create<ChatState>((set) => ({
   setMessages: (messages) => set({ messages }),
   setLoading: (isLoading) => set({ isLoading }),
   setOpen: (isOpen) => set({ isOpen }),
-  clear: () => set({ messages: [], isLoading: false }),
+  toggleOpen: () => set((state) => ({ isOpen: !state.isOpen })),
+  setSessions: (sessions) => set({ sessions }),
+  setActiveSessionId: (activeSessionId) => set({ activeSessionId }),
+
+  loadSessions: async (projectId: string) => {
+    try {
+      const sessions = await chatApi.listSessions(projectId);
+      set({ sessions });
+    } catch (err) {
+      console.error('[Chat] Failed to load sessions:', err);
+    }
+  },
+
+  createSession: async (projectId: string) => {
+    const session = await chatApi.createSession(projectId);
+    set((state) => ({
+      sessions: [session, ...state.sessions],
+      activeSessionId: session.id,
+      messages: [],
+    }));
+    return session;
+  },
+
+  selectSession: async (projectId: string, sessionId: string) => {
+    set({ activeSessionId: sessionId, messages: [], isLoading: true });
+    try {
+      const messages = await chatApi.getMessages(projectId, sessionId);
+      set({ messages, isLoading: false });
+    } catch (err) {
+      console.error('[Chat] Failed to load messages:', err);
+      set({ isLoading: false });
+    }
+  },
+
+  deleteSession: async (projectId: string, sessionId: string) => {
+    try {
+      await chatApi.deleteSession(projectId, sessionId);
+      const state = get();
+      const sessions = state.sessions.filter((s) => s.id !== sessionId);
+      const updates: Partial<ChatState> = { sessions };
+      if (state.activeSessionId === sessionId) {
+        updates.activeSessionId = null;
+        updates.messages = [];
+      }
+      set(updates);
+    } catch (err) {
+      console.error('[Chat] Failed to delete session:', err);
+    }
+  },
+
+  renameSession: async (projectId: string, sessionId: string, title: string) => {
+    try {
+      const updated = await chatApi.updateSessionTitle(projectId, sessionId, title);
+      set((state) => ({
+        sessions: state.sessions.map((s) => (s.id === sessionId ? { ...s, title: updated.title } : s)),
+      }));
+    } catch (err) {
+      console.error('[Chat] Failed to rename session:', err);
+    }
+  },
+
+  clear: () => set({ messages: [], isLoading: false, activeSessionId: null }),
 }));
 
 // ─── UI Store ───────────────────────────────────────────
 
 export type Phase = 'dashboard' | 'wizard' | 'canvas';
 
-const PHASE_PATHS: Record<Phase, string> = {
-  dashboard: '/',
-  wizard: '/new',
-  canvas: '/canvas',
-};
+function phasePathFor(phase: Phase, projectId?: string | null): string {
+  switch (phase) {
+    case 'wizard': return '/new';
+    case 'canvas': return projectId ? `/canvas/${projectId}` : '/canvas';
+    default: return '/';
+  }
+}
 
 function phaseFromPath(path: string): Phase {
   if (path === '/new') return 'wizard';
-  if (path === '/canvas') return 'canvas';
+  if (path.startsWith('/canvas')) return 'canvas';
   return 'dashboard';
+}
+
+function projectIdFromPath(path: string): string | null {
+  const match = path.match(/^\/canvas\/([a-f0-9-]+)/);
+  return match ? match[1] : null;
 }
 
 interface UIState {
@@ -177,15 +257,24 @@ interface UIState {
   selectedEdgeId: string | null;
   showConfigPanel: boolean;
   showLLMSettings: boolean;
+  showFunctionBuilder: boolean;
+  activeFunctionBuilderId: string | null;
+  showCodePreview: boolean;
+  showDependencyPanel: boolean;
   /** Push a new history entry and update phase. */
-  setPhase: (phase: Phase) => void;
+  setPhase: (phase: Phase, projectId?: string | null) => void;
   /** Update phase from popstate (no history push). */
   _syncPhase: (phase: Phase) => void;
+  /** Project ID extracted from URL on load. */
+  pendingProjectId: string | null;
   toggleSidebar: () => void;
   selectNode: (nodeId: string | null) => void;
   selectEdge: (edgeId: string | null) => void;
   setShowConfigPanel: (show: boolean) => void;
   setShowLLMSettings: (show: boolean) => void;
+  setShowFunctionBuilder: (show: boolean, functionId?: string | null) => void;
+  setShowCodePreview: (show: boolean) => void;
+  setShowDependencyPanel: (show: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -195,9 +284,15 @@ export const useUIStore = create<UIState>((set) => ({
   selectedEdgeId: null,
   showConfigPanel: false,
   showLLMSettings: false,
-  setPhase: (phase) => {
-    window.history.pushState({ phase }, '', PHASE_PATHS[phase]);
-    set({ phase });
+  showFunctionBuilder: false,
+  activeFunctionBuilderId: null,
+  showCodePreview: false,
+  showDependencyPanel: false,
+  pendingProjectId: projectIdFromPath(window.location.pathname),
+  setPhase: (phase, projectId = null) => {
+    const path = phasePathFor(phase, projectId);
+    window.history.pushState({ phase }, '', path);
+    set({ phase, pendingProjectId: null });
   },
   _syncPhase: (phase) => set({ phase }),
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -205,6 +300,9 @@ export const useUIStore = create<UIState>((set) => ({
   selectEdge: (edgeId) => set({ selectedEdgeId: edgeId, selectedNodeId: null, showConfigPanel: false }),
   setShowConfigPanel: (show) => set({ showConfigPanel: show }),
   setShowLLMSettings: (show) => set({ showLLMSettings: show }),
+  setShowFunctionBuilder: (show, functionId = null) => set({ showFunctionBuilder: show, activeFunctionBuilderId: functionId }),
+  setShowCodePreview: (show) => set({ showCodePreview: show }),
+  setShowDependencyPanel: (show) => set({ showDependencyPanel: show }),
 }));
 
 // Seed initial history state so the first back press works

@@ -1,0 +1,84 @@
+import { FastifyInstance } from 'fastify';
+{% set all_services = [] %}
+{% set all_dtos = [] %}
+{% for ep in endpoints %}
+{% set svc_name = ep.service_name | pascal_case if ep.service_name else '' %}
+{% if svc_name and not svc_name.endswith('Service') %}{% set svc_name = svc_name ~ 'Service' %}{% endif %}
+{% if svc_name and svc_name not in all_services %}
+{% if all_services.append(svc_name) %}{% endif %}
+{% endif %}
+{% set dto_name = ep.request_dto_name | pascal_case if ep.request_dto_name else '' %}
+{% if dto_name and dto_name not in all_dtos %}
+{% if all_dtos.append(dto_name) %}{% endif %}
+{% endif %}
+{% endfor %}
+{% for svc in all_services %}
+import { {{ svc }} } from '../services/{{ svc }}';
+{% endfor %}
+{% for dto in all_dtos %}
+import { {{ dto }}, {{ dto }}Schema } from '../dtos/{{ dto }}';
+{% endfor %}
+
+export default async function {{ route_name | camel_case }}Routes(app: FastifyInstance): Promise<void> {
+{% for ep in endpoints %}
+{% set svc_name = ep.service_name | pascal_case if ep.service_name else '' %}
+{% if svc_name and not svc_name.endswith('Service') %}{% set svc_name = svc_name ~ 'Service' %}{% endif %}
+{% set dto_name = ep.request_dto_name | pascal_case if ep.request_dto_name else '' %}
+{% if ep.method == 'GET' %}
+  app.get('{{ ep.path }}', async (request, reply) => {
+{% if svc_name %}
+    // TODO: inject {{ svc_name }} via dependency injection
+    const result: unknown[] = [];
+    return reply.status({{ ep.response_status }}).send(result);
+{% else %}
+    return reply.status({{ ep.response_status }}).send([]);
+{% endif %}
+  });
+{% elif ep.method == 'POST' %}
+  app.post<{ Body: {{ dto_name if dto_name else 'Record<string, unknown>' }} }>('{{ ep.path }}', {
+{% if dto_name %}
+    schema: { body: {{ dto_name }}Schema },
+{% endif %}
+  }, async (request, reply) => {
+    const data = request.body;
+{% if svc_name %}
+    // TODO: inject {{ svc_name }} via dependency injection
+    return reply.status({{ ep.response_status }}).send(data);
+{% else %}
+    return reply.status({{ ep.response_status }}).send(data);
+{% endif %}
+  });
+{% elif ep.method in ['PUT', 'PATCH'] %}
+  app.{{ ep.method | lower }}<{ Body: {{ dto_name if dto_name else 'Record<string, unknown>' }}; Params: { id: string } }>('{{ ep.path }}', {
+{% if dto_name %}
+    schema: { body: {{ dto_name }}Schema },
+{% endif %}
+  }, async (request, reply) => {
+    const data = request.body;
+{% if svc_name %}
+    // TODO: inject {{ svc_name }} via dependency injection
+    return reply.status({{ ep.response_status }}).send(data);
+{% else %}
+    return reply.status({{ ep.response_status }}).send(data);
+{% endif %}
+  });
+{% elif ep.method == 'DELETE' %}
+  app.delete<{ Params: { id: string } }>('{{ ep.path }}', async (request, reply) => {
+    const { id } = request.params;
+{% if svc_name %}
+    // TODO: inject {{ svc_name }} via dependency injection
+{% endif %}
+    return reply.status(204).send();
+  });
+{% else %}
+  app.route({
+    method: '{{ ep.method }}',
+    url: '{{ ep.path }}',
+    handler: async (request, reply) => {
+      return reply.status({{ ep.response_status }}).send({ message: 'TODO: implement' });
+    },
+  });
+{% endif %}
+
+{% endfor %}
+}

@@ -87,6 +87,7 @@ class ProjectConfig:
     database: str | None = None
     orm: str | None = None
     architecture: Architecture = Architecture.MVC
+    package_manager: str | None = None
 
 
 @dataclass
@@ -132,3 +133,61 @@ class GenerationResult:
     ir_snapshot: dict = field(default_factory=dict)
     error: str | None = None
     created_at: datetime = field(default_factory=datetime.utcnow)
+
+
+# ─── Function Builder ──────────────────────────────────
+
+@dataclass
+class FunctionParam:
+    name: str
+    type: str = "string"
+    default_value: str | None = None
+
+
+@dataclass
+class FunctionRevision:
+    id: UUID = field(default_factory=uuid4)
+    function_id: UUID = field(default_factory=uuid4)
+    revision_number: int = 1
+    code: str = ""
+    prompt: str = ""
+    provider: str = ""
+    model: str = ""
+    diff_from_previous: str | None = None
+    created_at: datetime = field(default_factory=datetime.utcnow)
+
+
+@dataclass
+class ChatSession:
+    id: UUID = field(default_factory=uuid4)
+    project_id: UUID = field(default_factory=uuid4)
+    title: str = "New Chat"
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=datetime.utcnow)
+    message_count: int = 0
+
+
+@dataclass
+class ChatMessageRecord:
+    id: UUID = field(default_factory=uuid4)
+    session_id: UUID = field(default_factory=uuid4)
+    role: str = "user"
+    content: str = ""
+    nodes_created: dict | None = None
+    created_at: datetime = field(default_factory=datetime.utcnow)
+
+
+@dataclass
+class FunctionDefinition:
+    id: UUID = field(default_factory=uuid4)
+    project_id: UUID = field(default_factory=uuid4)
+    node_id: str = ""
+    name: str = ""
+    description: str = ""
+    params: list[FunctionParam] = field(default_factory=list)
+    return_type: str = "void"
+    current_code: str = ""
+    current_prompt: str = ""
+    is_ai_generated: bool = False
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=datetime.utcnow)

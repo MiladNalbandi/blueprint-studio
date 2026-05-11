@@ -1,0 +1,75 @@
+{% set svc_name = service.name | pascal_case %}{% if not svc_name.endswith('Service') %}{% set svc_name = svc_name ~ 'Service' %}{% endif %}
+{% if service.repository %}
+{% set repo_entity = service.repository | pascal_case %}
+from app.repositories.{{ repo_entity | snake_case }}_repository import {{ repo_entity }}Repository
+{% endif %}
+
+
+class {{ svc_name }}:
+{% if service.repository %}
+    def __init__(self, repository: {{ repo_entity }}Repository):
+        self.repository = repository
+{% endif %}
+
+{% for method in service.methods %}
+{% set impl = namespace(found=none) %}
+{% for mi in service.method_implementations if mi.name == method %}
+{% set impl.found = mi %}
+{% endfor %}
+{% if impl.found %}
+    async def {{ method | snake_case }}(self{% for p in impl.found.params %}, {{ p.name }}: {{ p.type | py_type }}{% if p.default_value is not none %} = {{ p.default_value }}{% endif %}{% endfor %}) -> {{ impl.found.return_type | py_type }}:
+{{ impl.found.body | indent(8, true) }}
+{% elif method is write_method %}
+{% if method | lower is matching('create|save') %}
+    async def {{ method | snake_case }}(self, data: dict):
+{% if service.repository %}
+        return await self.repository.save(data)
+{% else %}
+        # TODO: implement {{ method }}
+        return data
+{% endif %}
+{% elif method | lower is matching('update') %}
+    async def {{ method | snake_case }}(self, data: dict):
+{% if service.repository %}
+        return await self.repository.save(data)
+{% else %}
+        # TODO: implement {{ method }}
+        return data
+{% endif %}
+{% elif method | lower is matching('delete|remove') %}
+    async def {{ method | snake_case }}(self, id: int) -> None:
+{% if service.repository %}
+        await self.repository.delete(id)
+{% else %}
+        # TODO: implement {{ method }}
+        pass
+{% endif %}
+{% else %}
+    async def {{ method | snake_case }}(self):
+        # TODO: implement {{ method }}
+        raise NotImplementedError('{{ method }} not implemented')
+{% endif %}
+{% elif method | lower is matching('find|get') %}
+{% if service.repository %}
+{% if method | lower is matching('findall|getall|list') %}
+    async def {{ method | snake_case }}(self) -> list:
+        return await self.repository.find_all()
+{% elif method | lower is matching('findbyid|getbyid') %}
+    async def {{ method | snake_case }}(self, id: int):
+        return await self.repository.find_by_id(id)
+{% else %}
+    async def {{ method | snake_case }}(self):
+        return await self.repository.{{ method | snake_case }}()
+{% endif %}
+{% else %}
+    async def {{ method | snake_case }}(self):
+        # TODO: implement {{ method }}
+        raise NotImplementedError('{{ method }} not implemented')
+{% endif %}
+{% else %}
+    async def {{ method | snake_case }}(self):
+        # TODO: implement {{ method }}
+        raise NotImplementedError('{{ method }} not implemented')
+{% endif %}
+
+{% endfor %}

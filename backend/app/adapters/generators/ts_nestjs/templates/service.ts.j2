@@ -1,0 +1,85 @@
+{% set svc_name = service.name | pascal_case %}{% if not svc_name.endswith('Service') %}{% set svc_name = svc_name ~ 'Service' %}{% endif %}
+import { Injectable } from '@nestjs/common';
+{% if service.repository %}
+{% set repo_entity = service.repository | pascal_case %}
+import { {{ repo_entity }}Repository } from './{{ repo_entity | kebab_case }}.repository';
+{% endif %}
+
+@Injectable()
+export class {{ svc_name }} {
+{% if service.repository %}
+  constructor(private readonly repository: {{ repo_entity }}Repository) {}
+{% endif %}
+
+{% for method in service.methods %}
+{% set impl = namespace(found=none) %}
+{% for mi in service.method_implementations if mi.name == method %}
+{% set impl.found = mi %}
+{% endfor %}
+{% if impl.found %}
+  async {{ method | camel_case }}({% for p in impl.found.params %}{% if not loop.first %}, {% endif %}{{ p.name }}: {{ p.type | ts_type }}{% if p.default_value is not none %} = {{ p.default_value }}{% endif %}{% endfor %}): Promise<{{ impl.found.return_type | ts_type }}> {
+{{ impl.found.body | indent(4, true) }}
+  }
+{% elif method is write_method %}
+{% if method | lower is matching('create|save') %}
+  async {{ method | camel_case }}(data: Record<string, unknown>): Promise<unknown> {
+{% if service.repository %}
+    return this.repository.save(data);
+{% else %}
+    // TODO: implement {{ method }}
+    return data;
+{% endif %}
+  }
+{% elif method | lower is matching('update') %}
+  async {{ method | camel_case }}(data: Record<string, unknown>): Promise<unknown> {
+{% if service.repository %}
+    return this.repository.save(data);
+{% else %}
+    // TODO: implement {{ method }}
+    return data;
+{% endif %}
+  }
+{% elif method | lower is matching('delete|remove') %}
+  async {{ method | camel_case }}(id: number): Promise<void> {
+{% if service.repository %}
+    await this.repository.delete(id);
+{% else %}
+    // TODO: implement {{ method }}
+{% endif %}
+  }
+{% else %}
+  async {{ method | camel_case }}(): Promise<unknown> {
+    // TODO: implement {{ method }}
+    throw new Error('Not implemented');
+  }
+{% endif %}
+{% elif method | lower is matching('find|get') %}
+{% if service.repository %}
+{% if method | lower is matching('findall|getall|list') %}
+  async {{ method | camel_case }}(): Promise<unknown[]> {
+    return this.repository.findAll();
+  }
+{% elif method | lower is matching('findbyid|getbyid') %}
+  async {{ method | camel_case }}(id: number): Promise<unknown> {
+    return this.repository.findById(id);
+  }
+{% else %}
+  async {{ method | camel_case }}(): Promise<unknown> {
+    return this.repository.{{ method | camel_case }}();
+  }
+{% endif %}
+{% else %}
+  async {{ method | camel_case }}(): Promise<unknown> {
+    // TODO: implement {{ method }}
+    throw new Error('Not implemented');
+  }
+{% endif %}
+{% else %}
+  async {{ method | camel_case }}(): Promise<unknown> {
+    // TODO: implement {{ method }}
+    throw new Error('Not implemented');
+  }
+{% endif %}
+
+{% endfor %}
+}

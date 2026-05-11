@@ -1,0 +1,164 @@
+{
+  "id": "crud_rest",
+  "name": "CRUD REST API",
+  "description": "Full CRUD with list, create, read, update, and delete endpoints, plus service, repository, DTO, entity, and response nodes.",
+  "icon": "database",
+  "nodes": [
+    {
+      "tempId": "entity-resource",
+      "type": "entity",
+      "label": "Resource",
+      "position": { "x": 900, "y": 400 },
+      "config": {
+        "tableName": "resources",
+        "fields": [
+          { "name": "id", "type": "integer", "primary": true },
+          { "name": "name", "type": "string" },
+          { "name": "description", "type": "string" },
+          { "name": "created_at", "type": "datetime" }
+        ],
+        "relations": [],
+        "indexes": []
+      }
+    },
+    {
+      "tempId": "endpoint-list",
+      "type": "endpoint",
+      "label": "List Resources",
+      "position": { "x": 0, "y": 0 },
+      "config": {
+        "method": "GET",
+        "path": "/api/resources",
+        "description": "List all resources"
+      }
+    },
+    {
+      "tempId": "endpoint-create",
+      "type": "endpoint",
+      "label": "Create Resource",
+      "position": { "x": 0, "y": 150 },
+      "config": {
+        "method": "POST",
+        "path": "/api/resources",
+        "description": "Create a new resource"
+      }
+    },
+    {
+      "tempId": "endpoint-get",
+      "type": "endpoint",
+      "label": "Get Resource",
+      "position": { "x": 0, "y": 300 },
+      "config": {
+        "method": "GET",
+        "path": "/api/resources/{id}",
+        "description": "Get a resource by ID"
+      }
+    },
+    {
+      "tempId": "endpoint-update",
+      "type": "endpoint",
+      "label": "Update Resource",
+      "position": { "x": 0, "y": 450 },
+      "config": {
+        "method": "PUT",
+        "path": "/api/resources/{id}",
+        "description": "Update a resource by ID"
+      }
+    },
+    {
+      "tempId": "endpoint-delete",
+      "type": "endpoint",
+      "label": "Delete Resource",
+      "position": { "x": 0, "y": 600 },
+      "config": {
+        "method": "DELETE",
+        "path": "/api/resources/{id}",
+        "description": "Delete a resource by ID"
+      }
+    },
+    {
+      "tempId": "dto-resource",
+      "type": "dto",
+      "label": "ResourceDTO",
+      "position": { "x": 300, "y": 250 },
+      "config": {
+        "fields": [
+          { "name": "name", "type": "string" },
+          { "name": "description", "type": "string" }
+        ],
+        "description": "Data transfer object for creating/updating a resource"
+      }
+    },
+    {
+      "tempId": "service-resource",
+      "type": "service",
+      "label": "ResourceService",
+      "position": { "x": 450, "y": 300 },
+      "config": {
+        "name": "ResourceService",
+        "methods": ["findAll", "findById", "create", "update", "delete"],
+        "description": "Business logic for resource operations"
+      }
+    },
+    {
+      "tempId": "repo-resource",
+      "type": "repository",
+      "label": "ResourceRepository",
+      "position": { "x": 700, "y": 400 },
+      "config": {
+        "entity": "Resource",
+        "methods": ["findAll", "findById", "save", "delete"]
+      }
+    },
+    {
+      "tempId": "response-200",
+      "type": "response",
+      "label": "200 OK",
+      "position": { "x": 300, "y": 0 },
+      "config": {
+        "status": 200,
+        "type": "json",
+        "description": "Successful response"
+      }
+    },
+    {
+      "tempId": "response-201",
+      "type": "response",
+      "label": "201 Created",
+      "position": { "x": 300, "y": 100 },
+      "config": {
+        "status": 201,
+        "type": "json",
+        "description": "Resource created successfully"
+      }
+    },
+    {
+      "tempId": "response-404",
+      "type": "response",
+      "label": "404 Not Found",
+      "position": { "x": 300, "y": 500 },
+      "config": {
+        "status": 404,
+        "type": "json",
+        "description": "Resource not found"
+      }
+    }
+  ],
+  "edges": [
+    { "source": "endpoint-list", "target": "service-resource", "label": "findAll" },
+    { "source": "endpoint-create", "target": "service-resource", "label": "create" },
+    { "source": "endpoint-get", "target": "service-resource", "label": "findById" },
+    { "source": "endpoint-update", "target": "service-resource", "label": "update" },
+    { "source": "endpoint-delete", "target": "service-resource", "label": "delete" },
+    { "source": "endpoint-create", "target": "dto-resource", "label": "validates" },
+    { "source": "endpoint-update", "target": "dto-resource", "label": "validates" },
+    { "source": "endpoint-list", "target": "response-200", "label": "returns" },
+    { "source": "endpoint-get", "target": "response-200", "label": "returns" },
+    { "source": "endpoint-get", "target": "response-404", "label": "not found" },
+    { "source": "endpoint-create", "target": "response-201", "label": "returns" },
+    { "source": "endpoint-update", "target": "response-200", "label": "returns" },
+    { "source": "endpoint-delete", "target": "response-200", "label": "returns" },
+    { "source": "service-resource", "target": "repo-resource", "label": "uses" },
+    { "source": "repo-resource", "target": "entity-resource", "label": "maps" }
+  ]
+}

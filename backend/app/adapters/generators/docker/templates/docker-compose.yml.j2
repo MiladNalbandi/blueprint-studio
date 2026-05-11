@@ -1,0 +1,52 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${APP_PORT:-{{ app_port }}}:{{ app_port }}"
+    environment:
+      {% for key, value in env_vars.items() %}
+      {{ key }}: "{{ value }}"
+      {% endfor %}
+    {% if database and database != 'sqlite' %}
+    depends_on:
+      db:
+        condition: service_healthy
+    {% endif %}
+
+  {% if database == 'postgres' %}
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    ports:
+      - "${DB_PORT:-{{ db_port }}}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+  {% elif database == 'mysql' %}
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: app
+      MYSQL_ROOT_PASSWORD: app
+    ports:
+      - "${DB_PORT:-{{ db_port }}}:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - dbdata:/var/lib/mysql
+  {% endif %}
+
+{% if database and database != 'sqlite' %}
+volumes:
+  dbdata:
+{% endif %}

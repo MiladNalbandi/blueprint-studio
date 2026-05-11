@@ -1,0 +1,18 @@
+<?php
+
+namespace App\DTO;
+
+{% if dto.validations %}
+use Symfony\Component\Validator\Constraints as Assert;
+{% endif %}
+
+class {{ dto.name | pascal_case }}DTO
+{
+{% for field in dto.fields %}
+{% for v in dto.validations if v.field == field.name %}
+    #[Assert\{{ v.rule | pascal_case }}]
+{% endfor %}
+    public {{ field.type }} ${{ field.name | camel_case }};
+
+{% endfor %}
+}

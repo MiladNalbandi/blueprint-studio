@@ -13,13 +13,13 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    hmr: {
+      path: '/__hmr',
+    },
     proxy: {
       '/api': {
         target: apiTarget,
         changeOrigin: true,
-      },
-      '/ws': {
-        target: apiTarget.replace('http', 'ws'),
         ws: true,
       },
     },

@@ -88,7 +88,7 @@ export default function ProjectDashboard() {
       setConfigs(configs);
 
       clearChat();
-      setPhase('canvas');
+      setPhase('canvas', project.id);
     } catch (err) {
       console.error('Failed to load project:', err);
       setLoadingProjectId(null);

@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true{% if ir.orm and ir.orm | lower == 'typeorm' %},
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true{% endif %}
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

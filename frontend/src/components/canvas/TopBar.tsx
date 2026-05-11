@@ -1,7 +1,8 @@
 /** Top bar — forge-styled logo, config badges, LLM indicators, AI Settings. */
 
-import { useProjectStore, useLLMStore, useFlowStore, useUIStore } from '@/stores';
-import { LANGUAGES, ARCHITECTURES, LLM_PROVIDERS } from '@/constants';
+import { useProjectStore, useLLMStore, useFlowStore, useUIStore, useChatStore } from '@/stores';
+import { LANGUAGES, ARCHITECTURES, LLM_PROVIDERS, PACKAGE_MANAGERS } from '@/constants';
+import type { Language } from '@/types';
 import { getTechIcon } from '@/lib/techIcons';
 import { useSaveAndNavigate } from '@/hooks/useSaveAndNavigate';
 
@@ -9,12 +10,16 @@ export default function TopBar() {
   const { project } = useProjectStore();
   const { configs } = useLLMStore();
   const { nodes, edges } = useFlowStore();
-  const { setShowLLMSettings } = useUIStore();
+  const { setShowLLMSettings, setShowCodePreview, setShowDependencyPanel } = useUIStore();
+  const { isOpen: chatOpen, toggleOpen: toggleChat } = useChatStore();
   const saveAndNavigate = useSaveAndNavigate();
 
   const config = project?.config;
   const langDef = config ? LANGUAGES.find((l) => l.id === config.language) : null;
   const archDef = config ? ARCHITECTURES.find((a) => a.id === config.architecture) : null;
+  const pmDef = config?.package_manager && config.language
+    ? PACKAGE_MANAGERS[config.language as Language]?.find((m) => m.id === config.package_manager)
+    : null;
 
   return (
     <div
@@ -62,6 +67,11 @@ export default function TopBar() {
               {archDef.icon} {archDef.name}
             </span>
           )}
+          {pmDef && (
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-md border font-medium text-emerald-400 border-emerald-500/20 bg-emerald-500/5">
+              {pmDef.icon} {pmDef.name}
+            </span>
+          )}
         </div>
       )}
 
@@ -87,6 +97,40 @@ export default function TopBar() {
           );
         })}
       </div>
+
+      {/* Chat toggle button */}
+      <button
+        onClick={toggleChat}
+        className={`text-xs font-display font-semibold px-3.5 py-2 rounded-lg transition-all ${
+          chatOpen
+            ? 'text-forge-400 bg-forge-500/10'
+            : 'text-zinc-400 hover:text-forge-400 hover:bg-forge-500/5'
+        }`}
+        style={{
+          border: `1px solid ${chatOpen ? 'rgba(249,115,22,0.3)' : 'var(--border)'}`,
+          ...(chatOpen ? { boxShadow: '0 0 12px rgba(249,115,22,0.15)' } : {}),
+        }}
+      >
+        Chat
+      </button>
+
+      {/* Code Preview button */}
+      <button
+        onClick={() => setShowCodePreview(true)}
+        className="text-[11px] font-display font-semibold text-zinc-400 px-3 py-1.5 rounded-lg transition-all hover:text-cyan-400 hover:bg-cyan-500/5"
+        style={{ border: '1px solid var(--border)' }}
+      >
+        &lt;/&gt; Code
+      </button>
+
+      {/* Dependencies button */}
+      <button
+        onClick={() => setShowDependencyPanel(true)}
+        className="text-[11px] font-display font-semibold text-zinc-400 px-3 py-1.5 rounded-lg transition-all hover:text-emerald-400 hover:bg-emerald-500/5"
+        style={{ border: '1px solid var(--border)' }}
+      >
+        Deps
+      </button>
 
       {/* AI Settings button */}
       <button

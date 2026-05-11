@@ -1,0 +1,5 @@
+{% for dep in ir.dependencies %}
+{% if not dep.get('dev', False) %}
+{{ dep.name }}{{ dep.version }}
+{% endif %}
+{% endfor %}

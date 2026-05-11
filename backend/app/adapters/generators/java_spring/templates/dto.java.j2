@@ -1,0 +1,84 @@
+package com.app.dto;
+
+{% set needs_bigdecimal = [] %}
+{% set needs_localdate = [] %}
+{% set needs_localdatetime = [] %}
+{% set needs_uuid = [] %}
+{% set needs_notnull = [] %}
+{% set needs_notblank = [] %}
+{% set needs_email = [] %}
+{% set needs_size = [] %}
+{% set needs_min = [] %}
+{% set needs_max = [] %}
+{% set needs_pattern = [] %}
+{% for field in dto.fields %}
+{% if not field.primary %}
+{% if field.type == 'decimal' %}{% if needs_bigdecimal.append(true) %}{% endif %}{% endif %}
+{% if field.type == 'date' %}{% if needs_localdate.append(true) %}{% endif %}{% endif %}
+{% if field.type == 'datetime' %}{% if needs_localdatetime.append(true) %}{% endif %}{% endif %}
+{% if field.type == 'uuid' %}{% if needs_uuid.append(true) %}{% endif %}{% endif %}
+{% if not field.nullable %}
+{% if field.type in ['string', 'text'] %}
+{% if needs_notblank.append(true) %}{% endif %}
+{% else %}
+{% if needs_notnull.append(true) %}{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% for v in dto.validations %}
+{% if v.rule == 'email' %}{% if needs_email.append(true) %}{% endif %}{% endif %}
+{% if v.rule == 'min' and v.params.get('value', 0) is number %}{% if needs_min.append(true) %}{% endif %}{% endif %}
+{% if v.rule == 'max' and v.params.get('value', 0) is number %}{% if needs_max.append(true) %}{% endif %}{% endif %}
+{% if v.rule in ['min', 'max'] and v.params.get('value', 0) is string %}{% if needs_size.append(true) %}{% endif %}{% endif %}
+{% if v.rule == 'regex' %}{% if needs_pattern.append(true) %}{% endif %}{% endif %}
+{% endfor %}
+import lombok.Data;
+{% if needs_notnull or needs_notblank or needs_email or needs_size or needs_min or needs_max or needs_pattern %}
+import jakarta.validation.constraints.*;
+{% endif %}
+{% if needs_bigdecimal %}
+import java.math.BigDecimal;
+{% endif %}
+{% if needs_localdate %}
+import java.time.LocalDate;
+{% endif %}
+{% if needs_localdatetime %}
+import java.time.LocalDateTime;
+{% endif %}
+{% if needs_uuid %}
+import java.util.UUID;
+{% endif %}
+
+@Data
+public class {{ dto.name | pascal_case }} {
+
+{% for field in dto.fields %}
+{% if not field.primary %}
+{% set validations_for_field = [] %}
+{% for v in dto.validations if v.field == field.name %}
+{% if validations_for_field.append(v) %}{% endif %}
+{% endfor %}
+{% if not field.nullable %}
+{% if field.type in ['string', 'text'] %}
+    @NotBlank
+{% else %}
+    @NotNull
+{% endif %}
+{% endif %}
+{% for v in validations_for_field %}
+{% if v.rule == 'email' %}
+    @Email
+{% elif v.rule == 'min' %}
+    @Min({{ v.params.get('value', 0) }})
+{% elif v.rule == 'max' %}
+    @Max({{ v.params.get('value', 0) }})
+{% elif v.rule == 'regex' %}
+    @Pattern(regexp = "{{ v.params.get('pattern', '.*') }}")
+{% endif %}
+{% endfor %}
+    private {{ field.type | java_type }} {{ field.name | camel_case }};
+
+{% endif %}
+{% endfor %}
+}

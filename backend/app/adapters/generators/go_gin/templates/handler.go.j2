@@ -1,0 +1,140 @@
+package handler
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+
+{% if service_name %}
+	"{{ ir.project_name | default('flowforge-generated', true) }}/internal/dto"
+	"{{ ir.project_name | default('flowforge-generated', true) }}/internal/service"
+{% endif %}
+)
+
+// {{ handler_name }}Handler handles HTTP requests for {{ handler_name | snake_case }} routes.
+type {{ handler_name }}Handler struct {
+{% if service_name %}
+	service *service.{{ service_name }}
+{% endif %}
+}
+
+// New{{ handler_name }}Handler creates a new {{ handler_name }}Handler.
+func New{{ handler_name }}Handler({% if service_name %}svc *service.{{ service_name }}{% endif %}) *{{ handler_name }}Handler {
+	return &{{ handler_name }}Handler{
+{% if service_name %}
+		service: svc,
+{% endif %}
+	}
+}
+
+{% for ep in endpoints %}
+{% if ep.method == 'GET' %}
+{% if '/{' in ep.path or '/:' in ep.path %}
+// GetByID handles {{ ep.method }} {{ ep.path }}.
+func (h *{{ handler_name }}Handler) GetByID(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+{% if service_name %}
+	result, err := h.service.FindByID(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+{% else %}
+	_ = id
+	c.JSON(http.StatusOK, gin.H{"id": idStr})
+{% endif %}
+}
+{% else %}
+// List handles {{ ep.method }} {{ ep.path }}.
+func (h *{{ handler_name }}Handler) List(c *gin.Context) {
+{% if service_name %}
+	results, err := h.service.FindAll()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, results)
+{% else %}
+	c.JSON(http.StatusOK, []interface{}{})
+{% endif %}
+}
+{% endif %}
+{% elif ep.method == 'POST' %}
+{% set dto_name = ep.request_dto_name | pascal_case if ep.request_dto_name else '' %}
+// Create handles {{ ep.method }} {{ ep.path }}.
+func (h *{{ handler_name }}Handler) Create(c *gin.Context) {
+{% if dto_name %}
+	var req dto.Create{{ dto_name }}Request
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+{% endif %}
+{% if service_name %}
+	// TODO: map DTO to model and call service.Create()
+	c.JSON(http.StatusCreated, gin.H{"message": "created"})
+{% else %}
+	c.JSON(http.StatusCreated, gin.H{"message": "created"})
+{% endif %}
+}
+{% elif ep.method in ['PUT', 'PATCH'] %}
+{% set dto_name = ep.request_dto_name | pascal_case if ep.request_dto_name else '' %}
+// Update handles {{ ep.method }} {{ ep.path }}.
+func (h *{{ handler_name }}Handler) Update(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+{% if dto_name %}
+	var req dto.Update{{ dto_name }}Request
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+{% endif %}
+{% if service_name %}
+	_ = id
+	// TODO: map DTO to model and call service.Update()
+	c.JSON(http.StatusOK, gin.H{"message": "updated"})
+{% else %}
+	_ = id
+	c.JSON(http.StatusOK, gin.H{"message": "updated"})
+{% endif %}
+}
+{% elif ep.method == 'DELETE' %}
+// Delete handles {{ ep.method }} {{ ep.path }}.
+func (h *{{ handler_name }}Handler) Delete(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+{% if service_name %}
+	if err := h.service.Delete(uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusNoContent, nil)
+{% else %}
+	_ = id
+	c.JSON(http.StatusNoContent, nil)
+{% endif %}
+}
+{% else %}
+// Handle{{ ep.method }} handles {{ ep.method }} {{ ep.path }}.
+func (h *{{ handler_name }}Handler) Handle{{ ep.method }}(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"message": "TODO: implement"})
+}
+{% endif %}
+
+{% endfor %}

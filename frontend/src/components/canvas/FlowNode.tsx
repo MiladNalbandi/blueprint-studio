@@ -29,7 +29,16 @@ function FlowNode({ data, selected }: NodeProps<FlowNodeType>) {
       case 'dto': return `${(cfg.fields as unknown[])?.length || 0} fields`;
       case 'validator': return `${(cfg.rules as unknown[])?.length || 0} rules → ${cfg.onFail || '422'}`;
       case 'logic': return `${cfg.outputs || 2} outputs`;
-      case 'entity': return `${cfg.tableName || 'table'}`;
+      case 'entity': {
+        const parts = [cfg.tableName || 'table'];
+        const colCount = (cfg.fields as unknown[])?.length || 0;
+        if (colCount > 0) parts.push(`${colCount} col${colCount !== 1 ? 's' : ''}`);
+        const relCount = (cfg.relations as unknown[])?.length || 0;
+        if (relCount > 0) parts.push(`${relCount} rel`);
+        const idxCount = (cfg.indexes as unknown[])?.length || 0;
+        if (idxCount > 0) parts.push(`${idxCount} idx`);
+        return parts.join(' \u00b7 ');
+      }
       case 'response': return `HTTP ${cfg.status || 200}`;
       case 'middleware': return `${cfg.type || 'auth'}`;
       case 'service': return `${cfg.name || 'Service'}`;

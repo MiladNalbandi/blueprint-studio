@@ -1,5 +1,6 @@
 """Base generator — shared Jinja2 rendering logic for all stack generators."""
 
+import re
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -28,6 +29,8 @@ class BaseGenerator(CodeGeneratorPort):
         self.env.filters["pascal_case"] = self._pascal_case
         self.env.filters["snake_case"] = self._snake_case
         self.env.filters["camel_case"] = self._camel_case
+        # Register custom tests
+        self.env.tests["matching"] = self._test_matching
 
     def supports(self, language: str, framework: str) -> bool:
         return self.language == language and self.framework.lower() == framework.lower()
@@ -47,15 +50,25 @@ class BaseGenerator(CodeGeneratorPort):
 
     @staticmethod
     def _pascal_case(value: str) -> str:
-        return "".join(word.capitalize() for word in value.replace("_", " ").replace("-", " ").split())
+        # Split on separators AND camelCase boundaries so "LabelRequest" stays intact
+        spaced = re.sub(r"([a-z])([A-Z])", r"\1 \2", value)
+        words = spaced.replace("_", " ").replace("-", " ").split()
+        return "".join(word.capitalize() for word in words)
 
     @staticmethod
     def _snake_case(value: str) -> str:
-        import re
         s1 = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", value)
         return re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
     @staticmethod
     def _camel_case(value: str) -> str:
-        words = value.replace("_", " ").replace("-", " ").split()
+        spaced = re.sub(r"([a-z])([A-Z])", r"\1 \2", value)
+        words = spaced.replace("_", " ").replace("-", " ").split()
+        if not words:
+            return value
         return words[0].lower() + "".join(w.capitalize() for w in words[1:])
+
+    @staticmethod
+    def _test_matching(value: str, pattern: str) -> bool:
+        """Jinja2 test: `value is matching('pattern')` — regex search (case-insensitive)."""
+        return bool(re.search(pattern, value, re.IGNORECASE))

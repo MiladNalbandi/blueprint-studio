@@ -1,0 +1,80 @@
+package com.app.entity;
+
+{% set needs_bigdecimal = [] %}
+{% set needs_localdate = [] %}
+{% set needs_localdatetime = [] %}
+{% set needs_uuid = [] %}
+{% set needs_list = [] %}
+{% for field in entity.fields %}
+{% if field.type == 'decimal' %}{% if needs_bigdecimal.append(true) %}{% endif %}{% endif %}
+{% if field.type == 'date' %}{% if needs_localdate.append(true) %}{% endif %}{% endif %}
+{% if field.type == 'datetime' %}{% if needs_localdatetime.append(true) %}{% endif %}{% endif %}
+{% if field.type == 'uuid' %}{% if needs_uuid.append(true) %}{% endif %}{% endif %}
+{% endfor %}
+{% for rel in entity.relations %}
+{% if rel.type in ['hasMany', 'manyToMany'] %}{% if needs_list.append(true) %}{% endif %}{% endif %}
+{% endfor %}
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+{% if needs_bigdecimal %}
+import java.math.BigDecimal;
+{% endif %}
+{% if needs_localdate %}
+import java.time.LocalDate;
+{% endif %}
+{% if needs_localdatetime %}
+import java.time.LocalDateTime;
+{% endif %}
+{% if needs_uuid %}
+import java.util.UUID;
+{% endif %}
+{% if needs_list %}
+import java.util.List;
+{% endif %}
+
+@Entity
+@Table(name = "{{ entity.table_name }}")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class {{ entity.name | pascal_case }} {
+
+{% for field in entity.fields %}
+{% if field.primary %}
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private {{ field.type | java_type }} {{ field.name | camel_case }};
+{% else %}
+    @Column(name = "{{ field.name }}"{% if not field.nullable %}, nullable = false{% endif %})
+    private {{ field.type | java_type }} {{ field.name | camel_case }};
+{% endif %}
+
+{% endfor %}
+{% for rel in entity.relations %}
+{% if rel.type == 'belongsTo' %}
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "{{ rel.foreignKey | default(rel.target ~ '_id') | snake_case }}")
+    private {{ rel.target | pascal_case }} {{ rel.target | camel_case }};
+
+{% elif rel.type == 'hasOne' %}
+    @OneToOne(mappedBy = "{{ entity.name | camel_case }}", cascade = CascadeType.ALL)
+    private {{ rel.target | pascal_case }} {{ rel.target | camel_case }};
+
+{% elif rel.type == 'hasMany' %}
+    @OneToMany(mappedBy = "{{ entity.name | camel_case }}", cascade = CascadeType.ALL)
+    private List<{{ rel.target | pascal_case }}> {{ rel.target | camel_case }}s;
+
+{% elif rel.type == 'manyToMany' %}
+    @ManyToMany
+    @JoinTable(
+        name = "{{ rel.pivotTable | default(entity.table_name ~ '_' ~ (rel.target | snake_case) ~ 's') }}",
+        joinColumns = @JoinColumn(name = "{{ entity.name | snake_case }}_id"),
+        inverseJoinColumns = @JoinColumn(name = "{{ rel.target | snake_case }}_id")
+    )
+    private List<{{ rel.target | pascal_case }}> {{ rel.target | camel_case }}s;
+
+{% endif %}
+{% endfor %}
+}

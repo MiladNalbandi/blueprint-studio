@@ -9,6 +9,12 @@ class SymfonyGenerator(BaseGenerator):
     language = "php"
     framework = "symfony"
 
+    def __init__(self):
+        super().__init__()
+        self.env.filters["php_type"] = self._php_type
+        self.env.filters["strip_prefix"] = self._strip_prefix
+        self.env.tests["write_method"] = self._is_write_method
+
     def _template_subdir(self) -> str:
         return "php_symfony/templates"
 
@@ -18,13 +24,13 @@ class SymfonyGenerator(BaseGenerator):
         # Entities
         for entity in ir.entities:
             content = self.render("entity.php.j2", entity=entity, ir=ir)
-            path = f"src/Entity/{entity.name | self._pascal_case}.php"
+            path = f"src/Entity/{self._pascal_case(entity.name)}.php"
             files.append(GeneratedFile(path=path, content=content))
 
         # DTOs
         for dto in ir.dtos:
             content = self.render("dto.php.j2", dto=dto, ir=ir)
-            path = f"src/DTO/{dto.name | self._pascal_case}DTO.php"
+            path = f"src/DTO/{self._pascal_case(dto.name)}DTO.php"
             files.append(GeneratedFile(path=path, content=content))
 
         # Repositories
@@ -37,26 +43,53 @@ class SymfonyGenerator(BaseGenerator):
         # Services
         for service in ir.services:
             content = self.render("service.php.j2", service=service, ir=ir)
-            path = f"src/Service/{self._pascal_case(service.name)}Service.php"
+            name = self._pascal_case(service.name)
+            suffix = "" if name.endswith("Service") else "Service"
+            path = f"src/Service/{name}{suffix}.php"
             files.append(GeneratedFile(path=path, content=content))
 
         # Controllers
         for endpoint in ir.endpoints:
-            content = self.render("controller.php.j2", endpoint=endpoint, ir=ir)
             name = self._controller_name(endpoint.path)
+            content = self.render("controller.php.j2", endpoint=endpoint, ir=ir, controller_name=name)
             path = f"src/Controller/{name}Controller.php"
             files.append(GeneratedFile(path=path, content=content))
 
+        # composer.json
+        content = self.render("composer.json.j2", ir=ir)
+        files.append(GeneratedFile(path="composer.json", content=content))
+
         return files
 
-    def _resolve_entity_name(self, entity_id: str, ir: IR) -> str:
+    def _resolve_entity_name(self, entity_ref: str, ir: IR) -> str:
         for entity in ir.entities:
-            if entity.id == entity_id:
+            if entity.id == entity_ref or entity.name == entity_ref:
                 return self._pascal_case(entity.name)
-        return "Unknown"
+        # Fallback: treat the ref itself as a name
+        return self._pascal_case(entity_ref) if entity_ref else "Unknown"
 
     def _controller_name(self, path: str) -> str:
         parts = [p for p in path.strip("/").split("/") if p and not p.startswith("{")]
         if parts:
             return self._pascal_case(parts[-1])
         return "Default"
+
+    @staticmethod
+    def _php_type(ir_type: str) -> str:
+        return {
+            "integer": "int", "bigint": "int", "string": "string",
+            "text": "string", "boolean": "bool", "float": "float",
+            "decimal": "float", "date": "\\DateTimeInterface",
+            "datetime": "\\DateTimeInterface", "json": "array", "uuid": "string",
+        }.get(ir_type, "mixed")
+
+    @staticmethod
+    def _strip_prefix(value: str, prefix: str) -> str:
+        if value.lower().startswith(prefix.lower()):
+            return value[len(prefix):]
+        return value
+
+    @staticmethod
+    def _is_write_method(method_name: str) -> bool:
+        lower = method_name.lower()
+        return any(lower.startswith(p) for p in ("create", "save", "update", "delete", "remove"))

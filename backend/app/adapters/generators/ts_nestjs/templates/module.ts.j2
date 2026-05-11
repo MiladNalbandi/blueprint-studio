@@ -1,0 +1,42 @@
+import { Module } from '@nestjs/common';
+{% if has_entity %}
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { {{ feature_name | pascal_case }} } from './{{ kebab }}.entity';
+{% endif %}
+{% if has_controller %}
+import { {{ feature_name | pascal_case }}Controller } from './{{ kebab }}.controller';
+{% endif %}
+{% if has_service %}
+{% set svc_name = feature_name | pascal_case %}{% if not svc_name.endswith('Service') %}{% set svc_name = svc_name ~ 'Service' %}{% endif %}
+import { {{ svc_name }} } from './{{ kebab }}.service';
+{% endif %}
+{% if has_repository %}
+import { {{ feature_name | pascal_case }}Repository } from './{{ kebab }}.repository';
+{% endif %}
+
+@Module({
+{% if has_entity %}
+  imports: [TypeOrmModule.forFeature([{{ feature_name | pascal_case }}])],
+{% else %}
+  imports: [],
+{% endif %}
+{% if has_controller %}
+  controllers: [{{ feature_name | pascal_case }}Controller],
+{% else %}
+  controllers: [],
+{% endif %}
+  providers: [
+{% if has_service %}
+    {{ svc_name }},
+{% endif %}
+{% if has_repository %}
+    {{ feature_name | pascal_case }}Repository,
+{% endif %}
+  ],
+{% if has_service %}
+  exports: [{{ svc_name }}],
+{% else %}
+  exports: [],
+{% endif %}
+})
+export class {{ feature_name | pascal_case }}Module {}

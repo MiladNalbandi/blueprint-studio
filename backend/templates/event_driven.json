@@ -1,0 +1,131 @@
+{
+  "id": "event_driven",
+  "name": "Event-Driven Order",
+  "description": "Event-driven pattern with order creation, domain events for payment processing and confirmation, and async event handlers.",
+  "icon": "zap",
+  "nodes": [
+    {
+      "tempId": "entity-order",
+      "type": "entity",
+      "label": "Order",
+      "position": { "x": 900, "y": 150 },
+      "config": {
+        "tableName": "orders",
+        "fields": [
+          { "name": "id", "type": "integer", "primary": true },
+          { "name": "user_id", "type": "integer" },
+          { "name": "total", "type": "decimal" },
+          { "name": "status", "type": "string" },
+          { "name": "created_at", "type": "datetime" }
+        ],
+        "relations": [],
+        "indexes": [
+          { "columns": ["user_id"], "unique": false, "name": "idx_orders_user_id" },
+          { "columns": ["status"], "unique": false, "name": "idx_orders_status" }
+        ]
+      }
+    },
+    {
+      "tempId": "endpoint-create-order",
+      "type": "endpoint",
+      "label": "Create Order",
+      "position": { "x": 0, "y": 100 },
+      "config": {
+        "method": "POST",
+        "path": "/api/orders",
+        "description": "Create a new order and trigger order processing pipeline"
+      }
+    },
+    {
+      "tempId": "dto-order",
+      "type": "dto",
+      "label": "OrderDTO",
+      "position": { "x": 200, "y": 0 },
+      "config": {
+        "fields": [
+          { "name": "user_id", "type": "integer" },
+          { "name": "items", "type": "array" },
+          { "name": "total", "type": "decimal" }
+        ],
+        "description": "Order creation request payload"
+      }
+    },
+    {
+      "tempId": "service-order",
+      "type": "service",
+      "label": "OrderService",
+      "position": { "x": 450, "y": 100 },
+      "config": {
+        "name": "OrderService",
+        "methods": ["createOrder", "processPayment", "sendConfirmation"],
+        "description": "Order processing business logic with event dispatching"
+      }
+    },
+    {
+      "tempId": "repo-order",
+      "type": "repository",
+      "label": "OrderRepository",
+      "position": { "x": 700, "y": 150 },
+      "config": {
+        "entity": "Order",
+        "methods": ["findAll", "findById", "save", "delete"]
+      }
+    },
+    {
+      "tempId": "event-order-created",
+      "type": "event",
+      "label": "OrderCreated",
+      "position": { "x": 450, "y": 300 },
+      "config": {
+        "name": "OrderCreated",
+        "payload": "order_id, user_id, total",
+        "async": true
+      }
+    },
+    {
+      "tempId": "event-payment-processed",
+      "type": "event",
+      "label": "PaymentProcessed",
+      "position": { "x": 700, "y": 400 },
+      "config": {
+        "name": "PaymentProcessed",
+        "payload": "order_id, status",
+        "async": true
+      }
+    },
+    {
+      "tempId": "response-201",
+      "type": "response",
+      "label": "201 Created",
+      "position": { "x": 200, "y": 250 },
+      "config": {
+        "status": 201,
+        "type": "json",
+        "description": "Order created and processing initiated"
+      }
+    },
+    {
+      "tempId": "response-400",
+      "type": "response",
+      "label": "400 Bad Request",
+      "position": { "x": 200, "y": 350 },
+      "config": {
+        "status": 400,
+        "type": "json",
+        "description": "Invalid order data"
+      }
+    }
+  ],
+  "edges": [
+    { "source": "endpoint-create-order", "target": "dto-order", "label": "validates" },
+    { "source": "endpoint-create-order", "target": "service-order", "label": "createOrder" },
+    { "source": "service-order", "target": "repo-order", "label": "uses" },
+    { "source": "repo-order", "target": "entity-order", "label": "maps" },
+    { "source": "service-order", "target": "event-order-created", "label": "emits" },
+    { "source": "event-order-created", "target": "service-order", "label": "processPayment" },
+    { "source": "service-order", "target": "event-payment-processed", "label": "emits" },
+    { "source": "event-payment-processed", "target": "service-order", "label": "sendConfirmation" },
+    { "source": "endpoint-create-order", "target": "response-201", "label": "returns" },
+    { "source": "endpoint-create-order", "target": "response-400", "label": "invalid data" }
+  ]
+}

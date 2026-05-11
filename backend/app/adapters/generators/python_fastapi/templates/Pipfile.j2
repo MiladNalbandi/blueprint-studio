@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+{% for dep in ir.dependencies %}
+{% if not dep.get('dev', False) %}
+{{ dep.name }} = "{{ dep.version }}"
+{% endif %}
+{% endfor %}
+
+[dev-packages]
+{% for dep in ir.dependencies %}
+{% if dep.get('dev', False) %}
+{{ dep.name }} = "{{ dep.version }}"
+{% endif %}
+{% endfor %}
+
+[requires]
+python_version = "3.11"

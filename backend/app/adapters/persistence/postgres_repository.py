@@ -26,6 +26,7 @@ class PostgresProjectRepository(ProjectRepositoryPort):
             existing.database = project.config.database
             existing.orm = project.config.orm
             existing.architecture = project.config.architecture.value
+            existing.package_manager = project.config.package_manager
             existing.flows = self._flow_to_dict(project.flow)
         else:
             model = ProjectModel(
@@ -36,6 +37,7 @@ class PostgresProjectRepository(ProjectRepositoryPort):
                 database=project.config.database,
                 orm=project.config.orm,
                 architecture=project.config.architecture.value,
+                package_manager=project.config.package_manager,
                 flows=self._flow_to_dict(project.flow),
             )
             self.session.add(model)
@@ -109,6 +111,7 @@ class PostgresProjectRepository(ProjectRepositoryPort):
                 database=model.database,
                 orm=model.orm,
                 architecture=Architecture(model.architecture),
+                package_manager=getattr(model, 'package_manager', None),
             ),
             flow=self._dict_to_flow(model.flows or {}),
             created_at=model.created_at,

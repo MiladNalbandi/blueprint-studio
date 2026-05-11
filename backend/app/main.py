@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.adapters.persistence.database import engine, create_tables
-from app.api.routes import projects, flows, generate, chat, llm_config
+from app.api.routes import projects, flows, generate, chat, llm_config, functions, runner, templates, import_routes
 from app.config import get_settings
 
 
@@ -42,6 +42,10 @@ app.include_router(flows.router, prefix="/api/projects", tags=["flows"])
 app.include_router(generate.router, prefix="/api/projects", tags=["generate"])
 app.include_router(chat.router, prefix="/api/projects", tags=["chat"])
 app.include_router(llm_config.router, prefix="/api/projects", tags=["llm-config"])
+app.include_router(functions.router, prefix="/api/projects", tags=["functions"])
+app.include_router(runner.router, prefix="/api/projects", tags=["runner"])
+app.include_router(templates.router, prefix="/api", tags=["templates"])
+app.include_router(import_routes.router, prefix="/api/projects", tags=["import"])
 
 
 @app.get("/health")

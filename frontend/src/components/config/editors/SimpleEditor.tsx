@@ -1,16 +1,18 @@
 /** Editor for simpler node types — forge-styled. */
 
 import type { NodeType } from '@/types';
+import FunctionList from '@/components/function-builder/FunctionList';
 
 interface Props {
   nodeType: NodeType;
+  nodeId: string;
   config: Record<string, unknown>;
   onChange: (config: Record<string, unknown>) => void;
 }
 
 const MIDDLEWARE_TYPES = ['auth', 'cors', 'rate-limit', 'logging', 'cache', 'compression'];
 
-export default function SimpleEditor({ nodeType, config, onChange }: Props) {
+export default function SimpleEditor({ nodeType, nodeId, config, onChange }: Props) {
   switch (nodeType) {
     case 'middleware':
       return (
@@ -50,6 +52,7 @@ export default function SimpleEditor({ nodeType, config, onChange }: Props) {
               style={{ background: 'var(--surface-0)', border: '1px solid var(--border-subtle)' }}
             />
           </div>
+          <FunctionList nodeId={nodeId} />
         </div>
       );
 
@@ -80,6 +83,7 @@ export default function SimpleEditor({ nodeType, config, onChange }: Props) {
               ))}
             </div>
           </div>
+          <FunctionList nodeId={nodeId} />
         </div>
       );
 

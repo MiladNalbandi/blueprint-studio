@@ -1,0 +1,165 @@
+{
+  "id": "file_upload",
+  "name": "File Upload",
+  "description": "File upload pattern with upload, download, list, and delete endpoints, validation middleware, and file entity.",
+  "icon": "upload",
+  "nodes": [
+    {
+      "tempId": "entity-file",
+      "type": "entity",
+      "label": "File",
+      "position": { "x": 900, "y": 250 },
+      "config": {
+        "tableName": "files",
+        "fields": [
+          { "name": "id", "type": "integer", "primary": true },
+          { "name": "filename", "type": "string" },
+          { "name": "mime_type", "type": "string" },
+          { "name": "size", "type": "integer" },
+          { "name": "path", "type": "string" },
+          { "name": "uploaded_at", "type": "datetime" }
+        ],
+        "relations": [],
+        "indexes": [
+          { "columns": ["filename"], "unique": false, "name": "idx_files_filename" }
+        ]
+      }
+    },
+    {
+      "tempId": "endpoint-upload",
+      "type": "endpoint",
+      "label": "Upload File",
+      "position": { "x": 0, "y": 0 },
+      "config": {
+        "method": "POST",
+        "path": "/api/files/upload",
+        "description": "Upload a new file"
+      }
+    },
+    {
+      "tempId": "endpoint-download",
+      "type": "endpoint",
+      "label": "Download File",
+      "position": { "x": 0, "y": 200 },
+      "config": {
+        "method": "GET",
+        "path": "/api/files/{id}",
+        "description": "Download a file by ID"
+      }
+    },
+    {
+      "tempId": "endpoint-list-files",
+      "type": "endpoint",
+      "label": "List Files",
+      "position": { "x": 0, "y": 400 },
+      "config": {
+        "method": "GET",
+        "path": "/api/files",
+        "description": "List all uploaded files"
+      }
+    },
+    {
+      "tempId": "endpoint-delete-file",
+      "type": "endpoint",
+      "label": "Delete File",
+      "position": { "x": 0, "y": 600 },
+      "config": {
+        "method": "DELETE",
+        "path": "/api/files/{id}",
+        "description": "Delete a file by ID"
+      }
+    },
+    {
+      "tempId": "middleware-upload-validation",
+      "type": "middleware",
+      "label": "Upload Validation",
+      "position": { "x": 250, "y": 0 },
+      "config": {
+        "type": "validation",
+        "description": "Validates file size, MIME type, and upload limits"
+      }
+    },
+    {
+      "tempId": "service-file",
+      "type": "service",
+      "label": "FileService",
+      "position": { "x": 500, "y": 300 },
+      "config": {
+        "name": "FileService",
+        "methods": ["upload", "download", "list", "delete"],
+        "description": "File storage and retrieval business logic"
+      }
+    },
+    {
+      "tempId": "repo-file",
+      "type": "repository",
+      "label": "FileRepository",
+      "position": { "x": 700, "y": 300 },
+      "config": {
+        "entity": "File",
+        "methods": ["findAll", "findById", "save", "delete"]
+      }
+    },
+    {
+      "tempId": "response-200",
+      "type": "response",
+      "label": "200 OK",
+      "position": { "x": 300, "y": 400 },
+      "config": {
+        "status": 200,
+        "type": "json",
+        "description": "Successful file operation"
+      }
+    },
+    {
+      "tempId": "response-201",
+      "type": "response",
+      "label": "201 Created",
+      "position": { "x": 300, "y": 100 },
+      "config": {
+        "status": 201,
+        "type": "json",
+        "description": "File uploaded successfully"
+      }
+    },
+    {
+      "tempId": "response-404",
+      "type": "response",
+      "label": "404 Not Found",
+      "position": { "x": 300, "y": 550 },
+      "config": {
+        "status": 404,
+        "type": "json",
+        "description": "File not found"
+      }
+    },
+    {
+      "tempId": "response-413",
+      "type": "response",
+      "label": "413 Payload Too Large",
+      "position": { "x": 500, "y": 0 },
+      "config": {
+        "status": 413,
+        "type": "json",
+        "description": "File exceeds maximum allowed size"
+      }
+    }
+  ],
+  "edges": [
+    { "source": "endpoint-upload", "target": "middleware-upload-validation", "label": "validates" },
+    { "source": "middleware-upload-validation", "target": "service-file", "label": "upload" },
+    { "source": "endpoint-upload", "target": "service-file", "label": "upload" },
+    { "source": "endpoint-download", "target": "service-file", "label": "download" },
+    { "source": "endpoint-list-files", "target": "service-file", "label": "list" },
+    { "source": "endpoint-delete-file", "target": "service-file", "label": "delete" },
+    { "source": "service-file", "target": "repo-file", "label": "uses" },
+    { "source": "repo-file", "target": "entity-file", "label": "maps" },
+    { "source": "endpoint-upload", "target": "response-201", "label": "returns" },
+    { "source": "endpoint-upload", "target": "response-413", "label": "too large" },
+    { "source": "endpoint-download", "target": "response-200", "label": "returns" },
+    { "source": "endpoint-download", "target": "response-404", "label": "not found" },
+    { "source": "endpoint-list-files", "target": "response-200", "label": "returns" },
+    { "source": "endpoint-delete-file", "target": "response-200", "label": "returns" },
+    { "source": "endpoint-delete-file", "target": "response-404", "label": "not found" }
+  ]
+}

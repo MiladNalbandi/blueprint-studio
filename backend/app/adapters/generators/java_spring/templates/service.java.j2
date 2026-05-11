@@ -1,0 +1,102 @@
+package com.app.service;
+
+{% if entity_name %}
+import com.app.entity.{{ entity_name }};
+import com.app.repository.{{ entity_name }}Repository;
+{% endif %}
+import org.springframework.stereotype.Service;
+
+{% if entity_name %}
+import java.util.List;
+import java.util.Optional;
+{% endif %}
+
+@Service
+public class {{ name }} {
+
+{% if entity_name %}
+    private final {{ entity_name }}Repository repository;
+
+    public {{ name }}({{ entity_name }}Repository repository) {
+        this.repository = repository;
+    }
+{% else %}
+    public {{ name }}() {
+    }
+{% endif %}
+
+{% for method in service.methods %}
+{% set impl = namespace(found=none) %}
+{% for mi in service.method_implementations if mi.name == method %}
+{% set impl.found = mi %}
+{% endfor %}
+{% if impl.found %}
+    public {{ impl.found.return_type | java_type }} {{ impl.found.name | camel_case }}({% for p in impl.found.params %}{% if not loop.first %}, {% endif %}{{ p.type | java_type }} {{ p.name }}{% endfor %}) {
+{{ impl.found.body | indent(8, true) }}
+    }
+{% elif method is write_method %}
+{% if method | lower is matching('create|save') %}
+    public {{ entity_name }} {{ method | camel_case }}({{ entity_name }} entity) {
+{% if entity_name %}
+        return repository.save(entity);
+{% else %}
+        // TODO: implement {{ method }}
+        return null;
+{% endif %}
+    }
+{% elif method | lower is matching('update') %}
+    public {{ entity_name }} {{ method | camel_case }}(Long id, {{ entity_name }} entity) {
+{% if entity_name %}
+        entity.setId(id);
+        return repository.save(entity);
+{% else %}
+        // TODO: implement {{ method }}
+        return null;
+{% endif %}
+    }
+{% elif method | lower is matching('delete|remove') %}
+    public void {{ method | camel_case }}(Long id) {
+{% if entity_name %}
+        repository.deleteById(id);
+{% else %}
+        // TODO: implement {{ method }}
+{% endif %}
+    }
+{% else %}
+    public Object {{ method | camel_case }}() {
+        // TODO: implement {{ method }}
+        return null;
+    }
+{% endif %}
+{% elif method | lower is matching('findall|getall|list|find_all|get_all') %}
+    public List<{{ entity_name }}> {{ method | camel_case }}() {
+{% if entity_name %}
+        return repository.findAll();
+{% else %}
+        // TODO: implement {{ method }}
+        return List.of();
+{% endif %}
+    }
+{% elif method | lower is matching('findbyid|getbyid|find_by_id|get_by_id') %}
+    public Optional<{{ entity_name }}> {{ method | camel_case }}(Long id) {
+{% if entity_name %}
+        return repository.findById(id);
+{% else %}
+        // TODO: implement {{ method }}
+        return Optional.empty();
+{% endif %}
+    }
+{% elif method | lower is matching('find|get') %}
+    public Object {{ method | camel_case }}() {
+        // TODO: implement {{ method }}
+        return null;
+    }
+{% else %}
+    public Object {{ method | camel_case }}() {
+        // TODO: implement {{ method }}
+        return null;
+    }
+{% endif %}
+
+{% endfor %}
+}

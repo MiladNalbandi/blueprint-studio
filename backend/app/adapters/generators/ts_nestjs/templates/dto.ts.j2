@@ -1,0 +1,33 @@
+{% set validators = [] %}
+{% for field in dto.fields %}
+{% if field.type in ['string', 'text', 'uuid'] and 'IsString' not in validators %}{% if validators.append('IsString') %}{% endif %}{% endif %}
+{% if field.type in ['integer', 'int', 'bigint', 'float', 'decimal'] and 'IsNumber' not in validators %}{% if validators.append('IsNumber') %}{% endif %}{% endif %}
+{% if field.type in ['boolean', 'bool'] and 'IsBoolean' not in validators %}{% if validators.append('IsBoolean') %}{% endif %}{% endif %}
+{% if field.type in ['date', 'datetime'] and 'IsDateString' not in validators %}{% if validators.append('IsDateString') %}{% endif %}{% endif %}
+{% if not field.nullable and 'IsNotEmpty' not in validators %}{% if validators.append('IsNotEmpty') %}{% endif %}{% endif %}
+{% if field.nullable and 'IsOptional' not in validators %}{% if validators.append('IsOptional') %}{% endif %}{% endif %}
+{% endfor %}
+import { {{ validators | join(', ') }} } from 'class-validator';
+
+export class Create{{ dto.name | pascal_case }}Dto {
+{% for field in dto.fields %}
+{% if not field.primary %}
+{% if field.type in ['string', 'text', 'uuid'] %}
+  @IsString()
+{% elif field.type in ['integer', 'int', 'bigint', 'float', 'decimal'] %}
+  @IsNumber()
+{% elif field.type in ['boolean', 'bool'] %}
+  @IsBoolean()
+{% elif field.type in ['date', 'datetime'] %}
+  @IsDateString()
+{% endif %}
+{% if field.nullable %}
+  @IsOptional()
+{% else %}
+  @IsNotEmpty()
+{% endif %}
+  {{ field.name }}{% if field.nullable %}?{% endif %}: {{ field.type | ts_type }};
+
+{% endif %}
+{% endfor %}
+}

@@ -1,0 +1,41 @@
+package models
+
+{% set needs_time = [] %}
+{% for field in entity.fields %}
+{% if field.type in ['date', 'datetime'] %}
+{% if needs_time.append(true) %}{% endif %}
+{% endif %}
+{% endfor %}
+{% if needs_time %}
+import (
+	"time"
+)
+{% endif %}
+
+// {{ entity.name | pascal_case }} represents the {{ entity.table_name }} table.
+type {{ entity.name | pascal_case }} struct {
+{% for field in entity.fields %}
+{% if field.primary %}
+	{{ field.name | pascal_case }}  {{ field.type | go_type }}  `gorm:"primaryKey;autoIncrement" json:"{{ field.name }}"`
+{% else %}
+	{{ field.name | pascal_case }}  {{ field.type | go_type }}  `gorm:"{{ field | gorm_tag }}" json:"{{ field.name }}{% if field.nullable %},omitempty{% endif %}"`
+{% endif %}
+{% endfor %}
+{% for rel in entity.relations %}
+{% if rel.type == 'hasMany' %}
+	{{ rel.target | pascal_case }}s  []{{ rel.target | pascal_case }}  `gorm:"foreignKey:{{ rel.foreignKey | default(entity.name ~ 'ID') | pascal_case }}" json:"{{ rel.target | snake_case }}s,omitempty"`
+{% elif rel.type == 'belongsTo' %}
+	{{ rel.target | pascal_case }}ID  uint  `gorm:"column:{{ rel.foreignKey | default(rel.target ~ '_id') | snake_case }}" json:"{{ rel.foreignKey | default(rel.target ~ '_id') | snake_case }}"`
+	{{ rel.target | pascal_case }}  *{{ rel.target | pascal_case }}  `gorm:"foreignKey:{{ rel.target | pascal_case }}ID" json:"{{ rel.target | snake_case }},omitempty"`
+{% elif rel.type == 'hasOne' %}
+	{{ rel.target | pascal_case }}  *{{ rel.target | pascal_case }}  `gorm:"foreignKey:{{ rel.foreignKey | default(entity.name ~ 'ID') | pascal_case }}" json:"{{ rel.target | snake_case }},omitempty"`
+{% elif rel.type == 'manyToMany' %}
+	{{ rel.target | pascal_case }}s  []{{ rel.target | pascal_case }}  `gorm:"many2many:{{ rel.pivotTable | default(entity.table_name ~ '_' ~ (rel.target | snake_case) ~ 's') }}" json:"{{ rel.target | snake_case }}s,omitempty"`
+{% endif %}
+{% endfor %}
+}
+
+// TableName overrides the default table name.
+func ({{ entity.name | pascal_case }}) TableName() string {
+	return "{{ entity.table_name }}"
+}

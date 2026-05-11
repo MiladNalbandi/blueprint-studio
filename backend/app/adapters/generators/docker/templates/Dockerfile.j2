@@ -1,0 +1,47 @@
+{% if language == 'java' and package_manager == 'gradle' %}
+FROM gradle:8.7-jdk21
+WORKDIR /app
+COPY build.gradle settings.gradle ./
+RUN gradle dependencies --no-daemon -q 2>/dev/null || true
+COPY src ./src
+CMD ["gradle", "bootRun", "--args=--server.port={{ app_port }}", "--no-daemon"]
+{% elif language == 'java' %}
+FROM maven:3.9-eclipse-temurin-21
+WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:resolve -q
+COPY src ./src
+CMD ["mvn", "spring-boot:run", "-Dspring-boot.run.arguments=--server.port={{ app_port }}"]
+{% elif language == 'python' %}
+FROM python:3.13-slim
+WORKDIR /app
+COPY requirements*.txt pyproject.toml* Pipfile* ./
+RUN pip install --no-cache-dir -r requirements.txt 2>/dev/null || pip install --no-cache-dir -e . 2>/dev/null || true
+COPY . .
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "{{ app_port }}"]
+{% elif language == 'go' %}
+FROM golang:1.22
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+CMD ["go", "run", "./cmd/server"]
+{% elif language == 'typescript' %}
+FROM node:22-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+CMD ["npm", "start"]
+{% elif language == 'php' %}
+FROM php:8.3-cli
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends unzip curl git && \
+    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer && \
+    rm -rf /var/lib/apt/lists/*
+COPY composer.json composer.lock* ./
+RUN composer install --no-scripts --no-interaction 2>/dev/null || true
+COPY . .
+CMD ["php", "-S", "0.0.0.0:{{ app_port }}", "-t", "public"]
+{% endif %}
+EXPOSE {{ app_port }}

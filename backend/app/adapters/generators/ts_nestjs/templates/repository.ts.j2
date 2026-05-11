@@ -1,0 +1,51 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { {{ entity_name }} } from './{{ entity_name | kebab_case }}.entity';
+
+@Injectable()
+export class {{ entity_name }}Repository {
+  constructor(
+    @InjectRepository({{ entity_name }})
+    private readonly repo: Repository<{{ entity_name }}>,
+  ) {}
+
+{% for method in repository.methods %}
+{% set impl = namespace(found=none) %}
+{% for mi in repository.method_implementations if mi.name == method %}
+{% set impl.found = mi %}
+{% endfor %}
+{% if impl.found %}
+  async {{ method | camel_case }}({% for p in impl.found.params %}{% if not loop.first %}, {% endif %}{{ p.name }}: {{ p.type | ts_type }}{% if p.default_value is not none %} = {{ p.default_value }}{% endif %}{% endfor %}): Promise<{{ impl.found.return_type | ts_type }}> {
+{{ impl.found.body | indent(4, true) }}
+  }
+{% elif method | lower == 'findall' or method | lower == 'find_all' %}
+  async findAll(): Promise<{{ entity_name }}[]> {
+    return this.repo.find();
+  }
+{% elif method | lower == 'findbyid' or method | lower == 'find_by_id' %}
+  async findById(id: number): Promise<{{ entity_name }} | null> {
+    return this.repo.findOneBy({ id });
+  }
+{% elif method | lower == 'save' %}
+  async save(entity: Partial<{{ entity_name }}>): Promise<{{ entity_name }}> {
+    return this.repo.save(entity as {{ entity_name }});
+  }
+{% elif method | lower == 'delete' or method | lower == 'remove' %}
+  async {{ method | camel_case }}(id: number): Promise<void> {
+    await this.repo.delete(id);
+  }
+{% elif method | lower is matching('^findby') %}
+{% set field_name = method | strip_prefix('findBy') %}
+  async {{ method | camel_case }}(value: unknown): Promise<{{ entity_name }}[]> {
+    return this.repo.findBy({ {{ field_name | camel_case }}: value } as any);
+  }
+{% else %}
+  async {{ method | camel_case }}(): Promise<unknown> {
+    // TODO: implement {{ method }}
+    throw new Error('Not implemented');
+  }
+{% endif %}
+
+{% endfor %}
+}

@@ -1,0 +1,19 @@
+package com.app.repository;
+
+import com.app.entity.{{ entity_name }};
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface {{ entity_name }}Repository extends JpaRepository<{{ entity_name }}, Long> {
+
+{% for method in repository.methods %}
+{% if method | lower is matching('^findby') and method | lower not in ['findbyid', 'find_by_id'] %}
+{% set field_name = method | strip_prefix('findBy') %}
+    List<{{ entity_name }}> findBy{{ field_name | pascal_case }}(String value);
+
+{% endif %}
+{% endfor %}
+}

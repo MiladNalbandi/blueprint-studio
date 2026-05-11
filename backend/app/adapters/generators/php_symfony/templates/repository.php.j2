@@ -1,0 +1,81 @@
+<?php
+
+namespace App\Repository;
+
+use App\Entity\{{ repository.entity | pascal_case }};
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Persistence\ManagerRegistry;
+
+/**
+ * @extends ServiceEntityRepository<{{ repository.entity | pascal_case }}>
+ */
+class {{ repository.entity | pascal_case }}Repository extends ServiceEntityRepository
+{
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, {{ repository.entity | pascal_case }}::class);
+    }
+
+{% for method in repository.methods %}
+{% set ns = namespace(impl=none) %}
+{% for mi in repository.method_implementations if mi.name == method %}
+{% set ns.impl = mi %}
+{% endfor %}
+{% if ns.impl %}
+    public function {{ method | camel_case }}({% for p in ns.impl.params %}{% if not loop.first %}, {% endif %}{% if p.type %}{{ p.type }} {% endif %}${{ p.name }}{% if p.default_value is not none %} = {{ p.default_value }}{% endif %}{% endfor %}){% if ns.impl.return_type != 'void' %}: {{ ns.impl.return_type }}{% endif %}
+
+    {
+{{ ns.impl.body | indent(8, true) }}
+    }
+{% elif method | lower == 'findall' or method | lower == 'find_all' %}
+    /**
+     * @return {{ repository.entity | pascal_case }}[]
+     */
+    public function {{ method | camel_case }}(): array
+    {
+        return $this->findAll();
+    }
+{% elif method | lower == 'findbyid' or method | lower == 'find_by_id' %}
+    public function {{ method | camel_case }}(int $id): ?{{ repository.entity | pascal_case }}
+    {
+        return $this->find($id);
+    }
+{% elif method | lower == 'save' %}
+    public function save({{ repository.entity | pascal_case }} $entity, bool $flush = true): void
+    {
+        $this->getEntityManager()->persist($entity);
+        if ($flush) {
+            $this->getEntityManager()->flush();
+        }
+    }
+{% elif method | lower == 'delete' or method | lower == 'remove' %}
+    public function {{ method | camel_case }}({{ repository.entity | pascal_case }} $entity, bool $flush = true): void
+    {
+        $this->getEntityManager()->remove($entity);
+        if ($flush) {
+            $this->getEntityManager()->flush();
+        }
+    }
+{% elif method | lower is matching('^findby') %}
+{% set field_name = method | strip_prefix('findBy') %}
+    /**
+     * @return {{ repository.entity | pascal_case }}[]
+     */
+    public function {{ method | camel_case }}($value): array
+    {
+        return $this->createQueryBuilder('e')
+            ->andWhere('e.{{ field_name | camel_case }} = :val')
+            ->setParameter('val', $value)
+            ->orderBy('e.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+{% else %}
+    public function {{ method | camel_case }}()
+    {
+        // TODO: implement {{ method }}
+    }
+{% endif %}
+
+{% endfor %}
+}

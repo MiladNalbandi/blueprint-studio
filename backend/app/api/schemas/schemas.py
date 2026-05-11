@@ -14,6 +14,7 @@ class ProjectConfigSchema(BaseModel):
     database: str | None = None
     orm: str | None = None
     architecture: str = "mvc"
+    package_manager: str | None = None
 
 
 class ProjectCreate(BaseModel):
@@ -110,8 +111,110 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     history: list[ChatMessage] = Field(default_factory=list)
+    referenced_node_ids: list[str] | None = None
+    session_id: str | None = None
 
 
 class ChatResponse(BaseModel):
     reply: str
     nodes_created: dict | None = None
+    session_id: str | None = None
+
+
+class ChatSessionCreate(BaseModel):
+    title: str = "New Chat"
+
+
+class ChatSessionUpdate(BaseModel):
+    title: str
+
+
+class ChatSessionResponse(BaseModel):
+    id: UUID
+    project_id: UUID
+    title: str
+    created_at: datetime
+    updated_at: datetime
+    message_count: int = 0
+
+    model_config = {"from_attributes": True}
+
+
+class ChatMessageResponse(BaseModel):
+    id: UUID
+    session_id: UUID
+    role: str
+    content: str
+    nodes_created: dict | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ─── Functions ──────────────────────────────────────────
+
+class FunctionParamSchema(BaseModel):
+    name: str
+    type: str = "string"
+    default_value: str | None = None
+
+
+class FunctionCreate(BaseModel):
+    node_id: str
+    name: str
+    description: str = ""
+    params: list[FunctionParamSchema] = Field(default_factory=list)
+    return_type: str = "void"
+    current_code: str | None = None
+    current_prompt: str | None = None
+    is_ai_generated: bool = False
+
+
+class FunctionUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    params: list[FunctionParamSchema] | None = None
+    return_type: str | None = None
+    current_code: str | None = None
+
+
+class FunctionGenerateRequest(BaseModel):
+    prompt: str
+    provider: str | None = None  # override project default
+    referenced_node_ids: list[str] | None = None
+
+
+class FunctionRevisionResponse(BaseModel):
+    id: UUID
+    function_id: UUID
+    revision_number: int
+    code: str
+    prompt: str
+    provider: str
+    model: str
+    diff_from_previous: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class FunctionResponse(BaseModel):
+    id: UUID
+    project_id: UUID
+    node_id: str
+    name: str
+    description: str
+    params: list[FunctionParamSchema]
+    return_type: str
+    current_code: str
+    current_prompt: str
+    is_ai_generated: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class FunctionGenerateResponse(BaseModel):
+    function: FunctionResponse
+    revision: FunctionRevisionResponse

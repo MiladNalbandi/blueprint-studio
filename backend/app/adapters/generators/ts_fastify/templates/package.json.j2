@@ -1,0 +1,28 @@
+{
+  "name": "flowforge-generated",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+{% set ns = namespace(first=true) %}
+{% for dep in ir.dependencies if not dep.get('dev', False) %}
+{% if not ns.first %},{% endif %}
+{% set ns.first = false %}
+    "{{ dep.name }}": "{{ dep.version }}"
+{%- endfor %}
+
+  },
+  "devDependencies": {
+{% set ns = namespace(first=true) %}
+{% for dep in ir.dependencies if dep.get('dev', False) %}
+{% if not ns.first %},{% endif %}
+{% set ns.first = false %}
+    "{{ dep.name }}": "{{ dep.version }}"
+{%- endfor %}
+
+  }
+}

@@ -1,0 +1,23 @@
+{
+    "name": "flowforge/generated",
+    "type": "project",
+    "require": {
+        "php": ">=8.2"{% for dep in ir.dependencies if not dep.get('dev', False) %},
+        "{{ dep.name }}": "{{ dep.version }}"{% endfor %}
+
+    },
+    "require-dev": {
+{% set ns = namespace(first=true) %}
+{% for dep in ir.dependencies if dep.get('dev', False) %}
+{% if not ns.first %},{% endif %}
+{% set ns.first = false %}
+        "{{ dep.name }}": "{{ dep.version }}"
+{%- endfor %}
+
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    }
+}

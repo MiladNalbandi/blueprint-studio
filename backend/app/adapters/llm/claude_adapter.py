@@ -13,10 +13,10 @@ class ClaudeAdapter(LLMProviderPort):
         self.model = model
         self.temperature = temperature
 
-    async def chat(self, messages: list[dict], system: str = "") -> str:
+    async def chat(self, messages: list[dict], system: str = "", max_tokens: int | None = None) -> str:
         response = await self.client.messages.create(
             model=self.model,
-            max_tokens=4096,
+            max_tokens=max_tokens or 4096,
             temperature=self.temperature,
             system=system or "You are FlowForge AI, a code architecture assistant.",
             messages=messages,

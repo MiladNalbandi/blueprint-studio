@@ -13,7 +13,7 @@ export function useAutoSave() {
   useEffect(() => {
     const unsubscribe = useFlowStore.subscribe((state, prevState) => {
       // Only save when the store is explicitly marked dirty by user actions
-      if (!state.dirty || !prevState.dirty && !state.dirty) return;
+      if (!state.dirty) return;
       // Skip if nodes & edges reference didn't actually change
       if (state.nodes === prevState.nodes && state.edges === prevState.edges) return;
 

@@ -1,0 +1,93 @@
+<?php
+{% set svc_class = endpoint.service_name | pascal_case if endpoint.service_name else '' %}
+{% if svc_class and not svc_class.endswith('Service') %}{% set svc_class = svc_class ~ 'Service' %}{% endif %}
+{% set dto_class = endpoint.request_dto_name | pascal_case ~ 'DTO' if endpoint.request_dto_name else '' %}
+{% set svc_method = endpoint.service_method | default('', true) | camel_case if endpoint.service_method else '' %}
+{% set ns = namespace(error_status=400, has_error_resp=false) %}
+{% for resp in endpoint.responses if resp.status >= 400 %}
+{% set ns.error_status = resp.status %}
+{% set ns.has_error_resp = true %}
+{% endfor %}
+
+namespace App\Controller;
+
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Attribute\Route;
+{% if svc_class %}
+use App\Service\{{ svc_class }};
+{% endif %}
+{% if dto_class %}
+use App\DTO\{{ dto_class }};
+{% endif %}
+
+class {{ controller_name }}Controller extends AbstractController
+{
+{% if svc_class %}
+    public function __construct(
+        private readonly {{ svc_class }} $service,
+    ) {}
+
+{% endif %}
+    #[Route('{{ endpoint.path }}', methods: ['{{ endpoint.method }}'])]
+    public function __invoke(Request $request): JsonResponse
+    {
+{% if endpoint.method in ['POST', 'PUT', 'PATCH'] and dto_class %}
+        $data = json_decode($request->getContent(), true);
+
+        try {
+{% if endpoint.method == 'POST' %}
+{% if svc_class %}
+            $result = $this->service->{{ svc_method or 'create' }}($data);
+{% else %}
+            $result = $data;
+{% endif %}
+
+            return $this->json($result, {{ endpoint.response_status }});
+{% elif endpoint.method in ['PUT', 'PATCH'] %}
+{% if svc_class %}
+            $result = $this->service->{{ svc_method or 'update' }}($data);
+{% else %}
+            $result = $data;
+{% endif %}
+
+            return $this->json($result, {{ endpoint.response_status }});
+{% endif %}
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], {{ ns.error_status }});
+        }
+{% elif endpoint.method == 'DELETE' %}
+        try {
+{% if svc_class %}
+            $this->service->{{ svc_method or 'delete' }}($request->get('id'));
+{% endif %}
+
+            return $this->json(null, 204);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], {{ ns.error_status }});
+        }
+{% else %}
+{% if svc_class %}
+{% set path_lower = endpoint.path | lower %}
+{% if '{' in endpoint.path and 'id' in path_lower %}
+        $result = $this->service->{{ svc_method or 'findById' }}($request->get('id'));
+{% elif 'search' in path_lower or 'query' in path_lower or 'filter' in path_lower %}
+        $result = $this->service->{{ svc_method or 'findAll' }}($request->query->all());
+{% else %}
+        $result = $this->service->{{ svc_method or 'findAll' }}();
+{% endif %}
+
+{% if ns.has_error_resp %}
+        if (empty($result)) {
+            return $this->json(['error' => 'Not found'], {{ ns.error_status }});
+        }
+
+{% endif %}
+        return $this->json($result, {{ endpoint.response_status }});
+{% else %}
+        return $this->json([], {{ endpoint.response_status }});
+{% endif %}
+{% endif %}
+    }
+}

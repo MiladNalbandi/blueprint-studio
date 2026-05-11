@@ -1,0 +1,76 @@
+package repository
+
+import (
+	"gorm.io/gorm"
+
+	"{{ ir.project_name | default('flowforge-generated', true) }}/internal/models"
+)
+
+// {{ entity_name }}Repository handles database operations for {{ entity_name }}.
+type {{ entity_name }}Repository struct {
+	db *gorm.DB
+}
+
+// New{{ entity_name }}Repository creates a new {{ entity_name }}Repository.
+func New{{ entity_name }}Repository(db *gorm.DB) *{{ entity_name }}Repository {
+	return &{{ entity_name }}Repository{db: db}
+}
+
+{% for method in repository.methods %}
+{% set impl = namespace(found=none) %}
+{% for mi in repository.method_implementations if mi.name == method %}
+{% set impl.found = mi %}
+{% endfor %}
+{% if impl.found %}
+func (r *{{ entity_name }}Repository) {{ impl.found.name | pascal_case }}({% for p in impl.found.params %}{% if not loop.first %}, {% endif %}{{ p.name }} {{ p.type | go_type }}{% endfor %}) ({{ impl.found.return_type | go_type }}, error) {
+{{ impl.found.body | indent(4, true) }}
+}
+{% elif method | lower == 'findall' or method | lower == 'find_all' %}
+// FindAll returns all {{ entity_name }} records.
+func (r *{{ entity_name }}Repository) FindAll() ([]models.{{ entity_name }}, error) {
+	var entities []models.{{ entity_name }}
+	result := r.db.Find(&entities)
+	return entities, result.Error
+}
+{% elif method | lower == 'findbyid' or method | lower == 'find_by_id' %}
+// FindByID returns a {{ entity_name }} by its ID.
+func (r *{{ entity_name }}Repository) FindByID(id uint) (*models.{{ entity_name }}, error) {
+	var entity models.{{ entity_name }}
+	result := r.db.First(&entity, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &entity, nil
+}
+{% elif method | lower == 'save' or method | lower == 'create' %}
+// Create inserts a new {{ entity_name }} record.
+func (r *{{ entity_name }}Repository) Create(entity *models.{{ entity_name }}) error {
+	return r.db.Create(entity).Error
+}
+{% elif method | lower == 'update' %}
+// Update saves changes to an existing {{ entity_name }} record.
+func (r *{{ entity_name }}Repository) Update(entity *models.{{ entity_name }}) error {
+	return r.db.Save(entity).Error
+}
+{% elif method | lower == 'delete' or method | lower == 'remove' %}
+// Delete removes a {{ entity_name }} record by its ID.
+func (r *{{ entity_name }}Repository) Delete(id uint) error {
+	return r.db.Delete(&models.{{ entity_name }}{}, id).Error
+}
+{% elif method | lower is matching('^findby') %}
+{% set field_name = method | strip_prefix('findBy') %}
+// {{ method | pascal_case }} finds {{ entity_name }} records by {{ field_name }}.
+func (r *{{ entity_name }}Repository) {{ method | pascal_case }}(value interface{}) ([]models.{{ entity_name }}, error) {
+	var entities []models.{{ entity_name }}
+	result := r.db.Where("{{ field_name | snake_case }} = ?", value).Find(&entities)
+	return entities, result.Error
+}
+{% else %}
+// {{ method | pascal_case }} — TODO: implement this method.
+func (r *{{ entity_name }}Repository) {{ method | pascal_case }}() (interface{}, error) {
+	// TODO: implement {{ method }}
+	return nil, nil
+}
+{% endif %}
+
+{% endfor %}

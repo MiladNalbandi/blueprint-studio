@@ -1,5 +1,6 @@
-/** Right sidebar — forge-styled node config panel. */
+/** Right sidebar — forge-styled node config panel with resizable width. */
 
+import { useCallback, useRef, useState } from 'react';
 import { useFlowStore, useUIStore } from '@/stores';
 import { NODE_TYPES } from '@/constants';
 import type { FlowNodeData } from '@/types';
@@ -11,9 +12,39 @@ import ResponseEditor from './editors/ResponseEditor';
 import EntityEditor from './editors/EntityEditor';
 import SimpleEditor from './editors/SimpleEditor';
 
+const MIN_WIDTH = 260;
+const MAX_WIDTH = 520;
+const DEFAULT_WIDTH = 300;
+
 export default function ConfigPanel() {
   const { selectedNodeId, showConfigPanel, selectNode } = useUIStore();
   const { nodes, updateNodeData } = useFlowStore();
+
+  const [width, setWidth] = useState(DEFAULT_WIDTH);
+  const dragging = useRef(false);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragging.current = true;
+    const startX = e.clientX;
+    const startW = width;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!dragging.current) return;
+      // dragging left edge: moving left increases width
+      const delta = startX - ev.clientX;
+      setWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startW + delta)));
+    };
+
+    const onMouseUp = () => {
+      dragging.current = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, [width]);
 
   const node = nodes.find((n) => n.id === selectedNodeId);
   if (!showConfigPanel || !node) return null;
@@ -40,15 +71,25 @@ export default function ConfigPanel() {
       case 'entity':
         return <EntityEditor config={data.config} onChange={handleConfigChange} />;
       default:
-        return <SimpleEditor nodeType={data.nodeType} config={data.config} onChange={handleConfigChange} />;
+        return <SimpleEditor nodeType={data.nodeType} nodeId={node.id} config={data.config} onChange={handleConfigChange} />;
     }
   };
 
   return (
     <div
-      className="w-[280px] shrink-0 flex flex-col overflow-hidden"
-      style={{ background: 'var(--surface-1)', borderLeft: '1px solid var(--border-subtle)' }}
+      className="shrink-0 flex flex-col overflow-hidden relative"
+      style={{
+        width,
+        background: 'var(--surface-1)',
+        borderLeft: '1px solid var(--border-subtle)',
+      }}
     >
+      {/* Resize handle */}
+      <div
+        onMouseDown={onMouseDown}
+        className="absolute top-0 left-0 w-1.5 h-full cursor-col-resize z-10 hover:bg-cyan-500/20 active:bg-cyan-500/30 transition-colors"
+      />
+
       {/* Header */}
       <div className="flex items-center gap-2.5 px-4 py-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
         <div

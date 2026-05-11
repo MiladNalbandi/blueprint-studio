@@ -1,0 +1,34 @@
+import { Entity, PrimaryGeneratedColumn, Column{% if entity.relations %}, OneToMany, ManyToOne, OneToOne, ManyToMany, JoinTable, JoinColumn{% endif %} } from 'typeorm';
+
+@Entity('{{ entity.table_name }}')
+export class {{ entity.name | pascal_case }} {
+{% for field in entity.fields %}
+{% if field.primary %}
+  @PrimaryGeneratedColumn()
+  {{ field.name }}: number;
+{% else %}
+  @Column({ type: '{{ field.type }}'{% if field.nullable %}, nullable: true{% endif %}{% if field.default %}, default: {{ field.default }}{% endif %} })
+  {{ field.name }}{% if field.nullable %}?{% endif %}: {{ field.type | ts_type }};
+{% endif %}
+
+{% endfor %}
+{% for rel in entity.relations %}
+{% if rel.type == 'hasMany' %}
+  @OneToMany(() => {{ rel.target | pascal_case }}, ({{ rel.target | camel_case }}) => {{ rel.target | camel_case }}.{{ entity.name | camel_case }})
+  {{ rel.target | camel_case }}s: {{ rel.target | pascal_case }}[];
+{% elif rel.type == 'belongsTo' %}
+  @ManyToOne(() => {{ rel.target | pascal_case }}, ({{ rel.target | camel_case }}) => {{ rel.target | camel_case }}.{{ entity.name | camel_case }}s)
+  @JoinColumn({% if rel.foreignKey %}{ name: '{{ rel.foreignKey }}' }{% endif %})
+  {{ rel.target | camel_case }}: {{ rel.target | pascal_case }};
+{% elif rel.type == 'hasOne' %}
+  @OneToOne(() => {{ rel.target | pascal_case }})
+  @JoinColumn({% if rel.foreignKey %}{ name: '{{ rel.foreignKey }}' }{% endif %})
+  {{ rel.target | camel_case }}: {{ rel.target | pascal_case }};
+{% elif rel.type == 'manyToMany' %}
+  @ManyToMany(() => {{ rel.target | pascal_case }})
+  @JoinTable({% if rel.pivotTable %}{ name: '{{ rel.pivotTable }}' }{% endif %})
+  {{ rel.target | camel_case }}s: {{ rel.target | pascal_case }}[];
+{% endif %}
+
+{% endfor %}
+}

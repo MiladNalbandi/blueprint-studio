@@ -1,0 +1,39 @@
+import { Module } from '@nestjs/common';
+{% if ir.database and ir.orm and ir.orm | lower == 'typeorm' %}
+import { TypeOrmModule } from '@nestjs/typeorm';
+{% endif %}
+{% for name in feature_names %}
+import { {{ name | pascal_case }}Module } from './{{ name | kebab_case }}/{{ name | kebab_case }}.module';
+{% endfor %}
+
+@Module({
+  imports: [
+{% if ir.database and ir.orm and ir.orm | lower == 'typeorm' %}
+    TypeOrmModule.forRoot({
+{% if ir.database | lower == 'postgres' %}
+      type: 'postgres',
+{% elif ir.database | lower == 'mysql' %}
+      type: 'mysql',
+{% elif ir.database | lower == 'sqlite' %}
+      type: 'sqlite',
+      database: 'database.sqlite',
+{% else %}
+      type: 'postgres',
+{% endif %}
+{% if ir.database | lower != 'sqlite' %}
+      host: process.env.DB_HOST || 'localhost',
+      port: Number(process.env.DB_PORT) || {% if ir.database | lower == 'postgres' %}5432{% elif ir.database | lower == 'mysql' %}3306{% else %}5432{% endif %},
+      username: process.env.DB_USERNAME || 'root',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME || 'app',
+{% endif %}
+      autoLoadEntities: true,
+      synchronize: process.env.NODE_ENV !== 'production',
+    }),
+{% endif %}
+{% for name in feature_names %}
+    {{ name | pascal_case }}Module,
+{% endfor %}
+  ],
+})
+export class AppModule {}

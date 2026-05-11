@@ -22,7 +22,7 @@ export function useSaveAndNavigate() {
         }
       }
 
-      setPhase(target);
+      setPhase(target, target === 'canvas' ? project?.id : null);
     },
     [setPhase],
   );

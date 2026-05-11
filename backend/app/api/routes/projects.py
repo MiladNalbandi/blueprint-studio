@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.dependencies import get_repository
 from app.api.schemas.schemas import ProjectCreate, ProjectResponse, ProjectUpdate
+from app.domain.constants.package_defaults import resolve_dependencies, FRAMEWORK_DEFAULTS
 from app.domain.models.project import Language, Architecture, Project, ProjectConfig
 from app.ports.interfaces import ProjectRepositoryPort
 
@@ -22,6 +23,7 @@ async def create_project(body: ProjectCreate, repo: ProjectRepositoryPort = Depe
             database=body.config.database,
             orm=body.config.orm,
             architecture=Architecture(body.config.architecture),
+            package_manager=body.config.package_manager,
         ),
     )
     saved = await repo.save(project)
@@ -56,6 +58,7 @@ async def update_project(project_id: UUID, body: ProjectUpdate, repo: ProjectRep
             database=body.config.database,
             orm=body.config.orm,
             architecture=Architecture(body.config.architecture),
+            package_manager=body.config.package_manager,
         )
     saved = await repo.save(project)
     return _to_response(saved)
@@ -68,6 +71,16 @@ async def delete_project(project_id: UUID, repo: ProjectRepositoryPort = Depends
         raise HTTPException(status_code=404, detail="Project not found")
 
 
+@router.get("/{project_id}/dependencies")
+async def get_dependencies(project_id: UUID, repo: ProjectRepositoryPort = Depends(get_repository)):
+    project = await repo.get(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    defaults = FRAMEWORK_DEFAULTS.get(project.config.framework.lower(), [])
+    resolved = resolve_dependencies(project.config)
+    return {"defaults": defaults, "custom": [], "resolved": resolved}
+
+
 def _to_response(project: Project) -> dict:
     return {
         "id": project.id,
@@ -78,6 +91,7 @@ def _to_response(project: Project) -> dict:
             "database": project.config.database,
             "orm": project.config.orm,
             "architecture": project.config.architecture.value,
+            "package_manager": project.config.package_manager,
         },
         "created_at": project.created_at,
         "updated_at": project.updated_at,

@@ -1,0 +1,16 @@
+from fastapi import FastAPI
+{% for name in route_names %}
+from app.routes.{{ name | snake_case }} import router as {{ name | snake_case }}_router
+{% endfor %}
+
+app = FastAPI()
+
+# Register routers
+{% for name in route_names %}
+app.include_router({{ name | snake_case }}_router, prefix='/{{ name | snake_case }}', tags=['{{ name }}'])
+{% endfor %}
+
+
+@app.get('/')
+async def root():
+    return {'message': 'FlowForge Generated API'}

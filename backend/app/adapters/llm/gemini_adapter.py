@@ -13,7 +13,7 @@ class GeminiAdapter(LLMProviderPort):
         self.model = model
         self.temperature = temperature
 
-    async def chat(self, messages: list[dict], system: str = "") -> str:
+    async def chat(self, messages: list[dict], system: str = "", max_tokens: int | None = None) -> str:
         contents = []
         for msg in messages:
             role = "user" if msg["role"] == "user" else "model"
@@ -25,7 +25,7 @@ class GeminiAdapter(LLMProviderPort):
             config={
                 "system_instruction": system,
                 "temperature": self.temperature,
-                "max_output_tokens": 4096,
+                "max_output_tokens": max_tokens or 4096,
             },
         )
         return response.text or ""

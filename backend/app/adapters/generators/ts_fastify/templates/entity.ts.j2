@@ -1,0 +1,15 @@
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+
+@Entity('{{ entity.table_name }}')
+export class {{ entity.name | pascal_case }} {
+{% for field in entity.fields %}
+{% if field.primary %}
+  @PrimaryGeneratedColumn()
+  {{ field.name }}: number;
+{% else %}
+  @Column({ type: '{{ field.type }}'{% if field.nullable %}, nullable: true{% endif %}{% if field.default %}, default: {{ field.default }}{% endif %} })
+  {{ field.name }}{% if field.nullable %}?{% endif %}: {{ field.type | ts_type }};
+{% endif %}
+
+{% endfor %}
+}

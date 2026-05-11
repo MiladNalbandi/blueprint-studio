@@ -1,0 +1,36 @@
+# Application
+spring.application.name={{ ir.project_name | default('app', true) }}
+server.port=${SERVER_PORT:8080}
+
+{% if ir.database and ir.database | lower == 'postgres' %}
+# PostgreSQL
+spring.datasource.url=jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:{{ ir.project_name | default('app', true) }}}
+spring.datasource.username=${DB_USER:postgres}
+spring.datasource.password=${DB_PASSWORD:postgres}
+spring.datasource.driver-class-name=org.postgresql.Driver
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+{% elif ir.database and ir.database | lower == 'mysql' %}
+# MySQL
+spring.datasource.url=jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:{{ ir.project_name | default('app', true) }}}
+spring.datasource.username=${DB_USER:root}
+spring.datasource.password=${DB_PASSWORD:}
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect
+{% elif ir.database and ir.database | lower == 'sqlite' %}
+# SQLite
+spring.datasource.url=jdbc:sqlite:${DB_PATH:{{ ir.project_name | default('app', true) }}.db}
+spring.datasource.driver-class-name=org.sqlite.JDBC
+spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect
+{% else %}
+# PostgreSQL (default)
+spring.datasource.url=jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:{{ ir.project_name | default('app', true) }}}
+spring.datasource.username=${DB_USER:postgres}
+spring.datasource.password=${DB_PASSWORD:postgres}
+spring.datasource.driver-class-name=org.postgresql.Driver
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+{% endif %}
+
+# JPA / Hibernate
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.open-in-view=false

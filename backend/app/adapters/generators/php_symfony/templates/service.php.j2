@@ -1,0 +1,145 @@
+<?php
+
+namespace App\Service;
+
+{% if service.repository %}
+use App\Repository\{{ service.repository | pascal_case }}Repository;
+{% endif %}
+
+{% set svc_name = service.name | pascal_case %}{% if not svc_name.endswith('Service') %}{% set svc_name = svc_name ~ 'Service' %}{% endif %}
+{% if service.description %}
+/**
+ * {{ service.description }}
+ */
+{% endif %}
+class {{ svc_name }}
+{
+{% if service.repository %}
+    public function __construct(
+        private readonly {{ service.repository | pascal_case }}Repository $repository,
+    ) {}
+{% endif %}
+
+{% for method in service.methods %}
+{% set ns = namespace(impl=none) %}{% for mi in service.method_implementations if mi.name == method %}{% set ns.impl = mi %}{% endfor %}
+{% set ml = method | lower %}
+{% if ns.impl %}
+    public function {{ method | camel_case }}({% for p in ns.impl.params %}{% if not loop.first %}, {% endif %}{% if p.type %}{{ p.type }} {% endif %}${{ p.name }}{% if p.default_value is not none %} = {{ p.default_value }}{% endif %}{% endfor %}){% if ns.impl.return_type != 'void' %}: {{ ns.impl.return_type }}{% endif %}
+
+    {
+{{ ns.impl.body | indent(8, true) }}
+    }
+{% elif method is write_method %}
+{% if ml is matching('^(create|save)') %}
+    public function {{ method | camel_case }}(array $data)
+    {
+{% if service.repository %}
+        return $this->repository->save($data);
+{% else %}
+        // TODO: implement {{ method }}
+{% endif %}
+    }
+{% elif ml is matching('^update') %}
+    public function {{ method | camel_case }}(array $data)
+    {
+{% if service.repository %}
+        $entity = $this->repository->findById($data['id']);
+        return $this->repository->save($entity);
+{% else %}
+        // TODO: implement {{ method }}
+{% endif %}
+    }
+{% elif ml is matching('^(delete|remove)') %}
+    public function {{ method | camel_case }}($id)
+    {
+{% if service.repository %}
+        $this->repository->delete($id);
+{% else %}
+        // TODO: implement {{ method }}
+{% endif %}
+    }
+{% else %}
+    public function {{ method | camel_case }}(array $data)
+    {
+        // TODO: implement {{ method }}
+    }
+{% endif %}
+{% elif ml is matching('^(search|query|filter)') %}
+    public function {{ method | camel_case }}(array $criteria = []): array
+    {
+{% if service.repository %}
+        return $this->repository->{{ method | camel_case }}($criteria);
+{% else %}
+        // TODO: implement {{ method }} — search/filter logic
+        return [];
+{% endif %}
+    }
+{% elif ml is matching('^count') %}
+    public function {{ method | camel_case }}(array $criteria = []): int
+    {
+{% if service.repository %}
+        return $this->repository->{{ method | camel_case }}($criteria);
+{% else %}
+        // TODO: implement {{ method }} — count logic
+        return 0;
+{% endif %}
+    }
+{% elif ml is matching('^(check|is|has)') %}
+    public function {{ method | camel_case }}(...$args): bool
+    {
+{% if service.repository %}
+        return $this->repository->{{ method | camel_case }}(...$args);
+{% else %}
+        // TODO: implement {{ method }} — boolean check
+        return false;
+{% endif %}
+    }
+{% elif ml is matching('^(find|get)') %}
+{% if ml is matching('findall|getall|list') %}
+    public function {{ method | camel_case }}(): array
+    {
+{% if service.repository %}
+        return $this->repository->findAll();
+{% else %}
+        // TODO: implement {{ method }}
+        return [];
+{% endif %}
+    }
+{% elif ml is matching('findbyid|getbyid') %}
+    public function {{ method | camel_case }}(int $id)
+    {
+{% if service.repository %}
+        return $this->repository->findById($id);
+{% else %}
+        // TODO: implement {{ method }}
+        return null;
+{% endif %}
+    }
+{% else %}
+    public function {{ method | camel_case }}(...$args)
+    {
+{% if service.repository %}
+        return $this->repository->{{ method | camel_case }}(...$args);
+{% else %}
+        // TODO: implement {{ method }}
+        return null;
+{% endif %}
+    }
+{% endif %}
+{% else %}
+    /**
+     * {{ method | camel_case }}{% if service.description %} — {{ service.description }}{% endif %}
+
+     */
+    public function {{ method | camel_case }}(...$args)
+    {
+{% if service.repository %}
+        return $this->repository->{{ method | camel_case }}(...$args);
+{% else %}
+        // TODO: implement {{ method }}
+{% endif %}
+    }
+{% endif %}
+
+{% endfor %}
+}

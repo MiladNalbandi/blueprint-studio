@@ -1,0 +1,75 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+{% if ir.database and ir.database | lower == 'postgres' %}
+	"gorm.io/driver/postgres"
+{% elif ir.database and ir.database | lower == 'mysql' %}
+	"gorm.io/driver/mysql"
+{% elif ir.database and ir.database | lower == 'sqlite' %}
+	"gorm.io/driver/sqlite"
+{% else %}
+	"gorm.io/driver/postgres"
+{% endif %}
+	"gorm.io/gorm"
+
+	"{{ ir.project_name | default('flowforge-generated', true) }}/internal/models"
+	"{{ ir.project_name | default('flowforge-generated', true) }}/internal/router"
+)
+
+func main() {
+{% if ir.database and ir.database | lower == 'mysql' %}
+	dsn := fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		getEnv("DB_USER", "root"),
+		getEnv("DB_PASSWORD", ""),
+		getEnv("DB_HOST", "localhost"),
+		getEnv("DB_PORT", "3306"),
+		getEnv("DB_NAME", "{{ ir.project_name | default('app', true) }}"),
+	)
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+{% elif ir.database and ir.database | lower == 'sqlite' %}
+	dsn := getEnv("DB_PATH", "{{ ir.project_name | default('app', true) }}.db")
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+{% else %}
+	dsn := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		getEnv("DB_HOST", "localhost"),
+		getEnv("DB_USER", "postgres"),
+		getEnv("DB_PASSWORD", "postgres"),
+		getEnv("DB_PORT", "5432"),
+		getEnv("DB_NAME", "{{ ir.project_name | default('app', true) }}"),
+	)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+{% endif %}
+	if err != nil {
+		log.Fatalf("failed to connect to database: %v", err)
+	}
+
+	// Auto-migrate models
+	if err := db.AutoMigrate(
+{% for entity in ir.entities %}
+		&models.{{ entity.name | pascal_case }}{},
+{% endfor %}
+	); err != nil {
+		log.Fatalf("failed to migrate database: %v", err)
+	}
+
+	r := router.SetupRouter(db)
+
+	port := getEnv("PORT", "8080")
+	log.Printf("Server starting on :%s", port)
+	if err := r.Run(":" + port); err != nil {
+		log.Fatalf("failed to start server: %v", err)
+	}
+}
+
+func getEnv(key, fallback string) string {
+	if val, ok := os.LookupEnv(key); ok {
+		return val
+	}
+	return fallback
+}

@@ -1,0 +1,111 @@
+package service
+
+{% if entity_name %}
+import (
+	"{{ ir.project_name | default('flowforge-generated', true) }}/internal/models"
+	"{{ ir.project_name | default('flowforge-generated', true) }}/internal/repository"
+)
+{% endif %}
+
+// {{ name }} handles business logic{% if entity_name %} for {{ entity_name }}{% endif %}.
+type {{ name }} struct {
+{% if entity_name %}
+	repo *repository.{{ entity_name }}Repository
+{% endif %}
+}
+
+// New{{ name }} creates a new {{ name }}.
+func New{{ name }}({% if entity_name %}repo *repository.{{ entity_name }}Repository{% endif %}) *{{ name }} {
+	return &{{ name }}{
+{% if entity_name %}
+		repo: repo,
+{% endif %}
+	}
+}
+
+{% for method in service.methods %}
+{% set impl = namespace(found=none) %}
+{% for mi in service.method_implementations if mi.name == method %}
+{% set impl.found = mi %}
+{% endfor %}
+{% if impl.found %}
+func (s *{{ name }}) {{ impl.found.name | pascal_case }}({% for p in impl.found.params %}{% if not loop.first %}, {% endif %}{{ p.name }} {{ p.type | go_type }}{% endfor %}) ({{ impl.found.return_type | go_type }}, error) {
+{{ impl.found.body | indent(4, true) }}
+}
+{% elif method is write_method %}
+{% if method | lower is matching('create|save') %}
+// {{ method | pascal_case }} creates a new record.
+func (s *{{ name }}) {{ method | pascal_case }}(entity *models.{{ entity_name }}) error {
+{% if entity_name %}
+	return s.repo.Create(entity)
+{% else %}
+	// TODO: implement {{ method }}
+	return nil
+{% endif %}
+}
+{% elif method | lower is matching('update') %}
+// {{ method | pascal_case }} updates an existing record.
+func (s *{{ name }}) {{ method | pascal_case }}(entity *models.{{ entity_name }}) error {
+{% if entity_name %}
+	return s.repo.Update(entity)
+{% else %}
+	// TODO: implement {{ method }}
+	return nil
+{% endif %}
+}
+{% elif method | lower is matching('delete|remove') %}
+// {{ method | pascal_case }} deletes a record by ID.
+func (s *{{ name }}) {{ method | pascal_case }}(id uint) error {
+{% if entity_name %}
+	return s.repo.Delete(id)
+{% else %}
+	// TODO: implement {{ method }}
+	return nil
+{% endif %}
+}
+{% else %}
+// {{ method | pascal_case }} — TODO: implement this method.
+func (s *{{ name }}) {{ method | pascal_case }}() (interface{}, error) {
+	// TODO: implement {{ method }}
+	return nil, nil
+}
+{% endif %}
+{% elif method | lower is matching('findall|getall|list|find_all|get_all') %}
+// {{ method | pascal_case }} returns all records.
+func (s *{{ name }}) {{ method | pascal_case }}() ([]models.{{ entity_name }}, error) {
+{% if entity_name %}
+	return s.repo.FindAll()
+{% else %}
+	// TODO: implement {{ method }}
+	return nil, nil
+{% endif %}
+}
+{% elif method | lower is matching('findbyid|getbyid|find_by_id|get_by_id') %}
+// {{ method | pascal_case }} returns a record by its ID.
+func (s *{{ name }}) {{ method | pascal_case }}(id uint) (*models.{{ entity_name }}, error) {
+{% if entity_name %}
+	return s.repo.FindByID(id)
+{% else %}
+	// TODO: implement {{ method }}
+	return nil, nil
+{% endif %}
+}
+{% elif method | lower is matching('find|get') %}
+// {{ method | pascal_case }} — TODO: implement this method.
+func (s *{{ name }}) {{ method | pascal_case }}() (interface{}, error) {
+{% if entity_name %}
+	return s.repo.{{ method | pascal_case }}()
+{% else %}
+	// TODO: implement {{ method }}
+	return nil, nil
+{% endif %}
+}
+{% else %}
+// {{ method | pascal_case }} — TODO: implement this method.
+func (s *{{ name }}) {{ method | pascal_case }}() (interface{}, error) {
+	// TODO: implement {{ method }}
+	return nil, nil
+}
+{% endif %}
+
+{% endfor %}

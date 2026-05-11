@@ -14,6 +14,8 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import FlowNode from './FlowNode';
+import TemplateGallery from './TemplateGallery';
+import OpenAPIImportModal from './OpenAPIImportModal';
 import { useFlowStore, useUIStore } from '@/stores';
 import { DEFAULT_NODE_CONFIGS } from '@/constants';
 import { useAutoSave } from '@/hooks/useAutoSave';
@@ -30,6 +32,8 @@ export default function Canvas() {
   const { selectNode, selectEdge } = useUIStore();
   const reactFlowInstance = useRef<ReactFlowInstance<Node<FlowNodeData>> | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const dragCounter = useRef(0);
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
@@ -115,6 +119,28 @@ export default function Canvas() {
           <span className="text-sm text-forge-400 font-display font-semibold tracking-wide">Drop to place component</span>
         </div>
       )}
+      {/* Action buttons */}
+      <div className="absolute top-4 left-4 z-10 flex gap-2">
+        <button
+          onClick={() => setShowTemplates(true)}
+          className="px-3 py-1.5 text-xs font-display font-bold text-zinc-400 rounded-lg hover:text-forge-400 hover:bg-forge-500/10 transition-colors"
+          style={{ background: 'var(--surface-1)', border: '1px solid var(--border-subtle)' }}
+        >
+          Templates
+        </button>
+        <button
+          onClick={() => setShowImport(true)}
+          className="px-3 py-1.5 text-xs font-display font-bold text-zinc-400 rounded-lg hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors"
+          style={{ background: 'var(--surface-1)', border: '1px solid var(--border-subtle)' }}
+        >
+          Import
+        </button>
+      </div>
+
+      {/* Modals */}
+      {showTemplates && <TemplateGallery onClose={() => setShowTemplates(false)} />}
+      {showImport && <OpenAPIImportModal onClose={() => setShowImport(false)} />}
+
       <ReactFlow
         nodes={nodes}
         edges={edges}

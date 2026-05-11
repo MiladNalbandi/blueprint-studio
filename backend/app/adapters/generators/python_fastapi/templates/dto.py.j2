@@ -1,0 +1,17 @@
+from pydantic import BaseModel
+{% set has_optional = entity is not defined and dto.fields | selectattr('nullable') | list | length > 0 %}
+{% if has_optional or dto.fields | selectattr('nullable') | list | length > 0 %}
+from typing import Optional
+{% endif %}
+
+
+class {{ dto.name | pascal_case }}Schema(BaseModel):
+{% for field in dto.fields %}
+{% if field.nullable %}
+    {{ field.name }}: Optional[{{ field.type | py_type }}] = None
+{% else %}
+    {{ field.name }}: {{ field.type | py_type }}
+{% endif %}
+{% endfor %}
+
+    model_config = {'from_attributes': True}

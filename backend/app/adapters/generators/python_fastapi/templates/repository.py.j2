@@ -1,0 +1,49 @@
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.{{ entity_name | snake_case }} import {{ entity_name }}
+
+
+class {{ entity_name }}Repository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+{% for method in repository.methods %}
+{% set impl = namespace(found=none) %}
+{% for mi in repository.method_implementations if mi.name == method %}
+{% set impl.found = mi %}
+{% endfor %}
+{% if impl.found %}
+    async def {{ method | snake_case }}(self{% for p in impl.found.params %}, {{ p.name }}: {{ p.type | py_type }}{% if p.default_value is not none %} = {{ p.default_value }}{% endif %}{% endfor %}) -> {{ impl.found.return_type | py_type }}:
+{{ impl.found.body | indent(8, true) }}
+{% elif method | lower == 'findall' or method | lower == 'find_all' %}
+    async def find_all(self) -> list[{{ entity_name }}]:
+        result = await self.session.execute(select({{ entity_name }}))
+        return result.scalars().all()
+{% elif method | lower == 'findbyid' or method | lower == 'find_by_id' %}
+    async def find_by_id(self, id: int) -> {{ entity_name }} | None:
+        return await self.session.get({{ entity_name }}, id)
+{% elif method | lower == 'save' %}
+    async def save(self, entity: {{ entity_name }}) -> {{ entity_name }}:
+        self.session.add(entity)
+        await self.session.flush()
+        return entity
+{% elif method | lower == 'delete' or method | lower == 'remove' %}
+    async def {{ method | snake_case }}(self, id: int) -> None:
+        entity = await self.session.get({{ entity_name }}, id)
+        if entity:
+            await self.session.delete(entity)
+{% elif method | lower is matching('^find_?by') %}
+{% set field_name = method | strip_prefix('findBy') | snake_case %}
+    async def {{ method | snake_case }}(self, value) -> list[{{ entity_name }}]:
+        result = await self.session.execute(
+            select({{ entity_name }}).where({{ entity_name }}.{{ field_name }} == value)
+        )
+        return result.scalars().all()
+{% else %}
+    async def {{ method | snake_case }}(self):
+        # TODO: implement {{ method }}
+        raise NotImplementedError('{{ method }} not implemented')
+{% endif %}
+
+{% endfor %}

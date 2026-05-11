@@ -1,0 +1,27 @@
+import Fastify from 'fastify';
+{% for name in route_names %}
+import {{ name | camel_case }}Routes from './routes/{{ name | camel_case }}';
+{% endfor %}
+
+const app = Fastify({
+  logger: true,
+});
+
+// Register routes
+{% for name in route_names %}
+app.register({{ name | camel_case }}Routes);
+{% endfor %}
+
+// Start server
+const start = async () => {
+  try {
+    const port = Number(process.env.PORT) || 3000;
+    await app.listen({ port, host: '0.0.0.0' });
+    console.log(`Server running on http://localhost:${port}`);
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
+};
+
+start();

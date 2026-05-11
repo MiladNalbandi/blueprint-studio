@@ -1,0 +1,30 @@
+from sqlalchemy import Column, {{ entity.fields | map(attribute='type') | map('sa_type') | map('sa_import') | unique | sort | join(', ') }}
+from sqlalchemy.orm import DeclarativeBase, relationship
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class {{ entity.name | pascal_case }}(Base):
+    __tablename__ = '{{ entity.table_name }}'
+
+{% for field in entity.fields %}
+{% if field.primary %}
+    {{ field.name }} = Column({{ field.type | sa_type }}, primary_key=True, autoincrement=True)
+{% else %}
+    {{ field.name }} = Column({{ field.type | sa_type }}{% if field.nullable %}, nullable=True{% endif %}{% if field.default %}, default={{ field.default }}{% endif %})
+{% endif %}
+{% endfor %}
+{% for rel in entity.relations %}
+{% if rel.type == 'hasMany' %}
+    {{ rel.target | snake_case }}s = relationship('{{ rel.target | pascal_case }}', back_populates='{{ entity.name | snake_case }}')
+{% elif rel.type == 'belongsTo' %}
+    {{ rel.target | snake_case }} = relationship('{{ rel.target | pascal_case }}', back_populates='{{ entity.name | snake_case }}s')
+{% elif rel.type == 'hasOne' %}
+    {{ rel.target | snake_case }} = relationship('{{ rel.target | pascal_case }}', uselist=False, back_populates='{{ entity.name | snake_case }}')
+{% endif %}
+{% endfor %}
+
+    def __repr__(self) -> str:
+        return f'<{{ entity.name | pascal_case }}(id={self.id!r})>'

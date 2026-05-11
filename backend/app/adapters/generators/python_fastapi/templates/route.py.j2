@@ -1,0 +1,86 @@
+from fastapi import APIRouter, Depends, HTTPException
+{% set all_services = [] %}
+{% set all_dtos = [] %}
+{% for ep in endpoints %}
+{% set svc_name = ep.service_name | pascal_case if ep.service_name else '' %}
+{% if svc_name and not svc_name.endswith('Service') %}{% set svc_name = svc_name ~ 'Service' %}{% endif %}
+{% if svc_name and svc_name not in all_services %}
+{% if all_services.append(svc_name) %}{% endif %}
+{% endif %}
+{% set dto_name = ep.request_dto_name | pascal_case if ep.request_dto_name else '' %}
+{% if dto_name and dto_name not in all_dtos %}
+{% if all_dtos.append(dto_name) %}{% endif %}
+{% endif %}
+{% endfor %}
+{% for svc in all_services %}
+from app.services.{{ svc | snake_case }} import {{ svc }}
+{% endfor %}
+{% for dto in all_dtos %}
+from app.schemas.{{ dto | snake_case }} import {{ dto }}Schema
+{% endfor %}
+
+router = APIRouter()
+
+{% for ep in endpoints %}
+{% set svc_name = ep.service_name | pascal_case if ep.service_name else '' %}
+{% if svc_name and not svc_name.endswith('Service') %}{% set svc_name = svc_name ~ 'Service' %}{% endif %}
+{% set dto_name = ep.request_dto_name | pascal_case if ep.request_dto_name else '' %}
+{% if ep.method == 'GET' %}
+@router.get('{{ ep.path }}')
+async def {{ ep.path | snake_case | replace('/', '_') | replace('{', '') | replace('}', '') }}_get():
+{% if svc_name %}
+    # TODO: inject {{ svc_name }} via dependency injection
+    result = []
+    return result
+{% else %}
+    return []
+{% endif %}
+{% elif ep.method == 'POST' %}
+@router.post('{{ ep.path }}', status_code={{ ep.response_status }})
+async def {{ ep.path | snake_case | replace('/', '_') | replace('{', '') | replace('}', '') }}_post({% if dto_name %}body: {{ dto_name }}Schema{% endif %}):
+{% if svc_name %}
+    # TODO: inject {{ svc_name }} via dependency injection
+{% if dto_name %}
+    return body.model_dump()
+{% else %}
+    return {}
+{% endif %}
+{% else %}
+{% if dto_name %}
+    return body.model_dump()
+{% else %}
+    return {}
+{% endif %}
+{% endif %}
+{% elif ep.method in ['PUT', 'PATCH'] %}
+@router.{{ ep.method | lower }}('{{ ep.path }}')
+async def {{ ep.path | snake_case | replace('/', '_') | replace('{', '') | replace('}', '') }}_{{ ep.method | lower }}(id: int{% if dto_name %}, body: {{ dto_name }}Schema{% endif %}):
+{% if svc_name %}
+    # TODO: inject {{ svc_name }} via dependency injection
+{% if dto_name %}
+    return body.model_dump()
+{% else %}
+    return {}
+{% endif %}
+{% else %}
+{% if dto_name %}
+    return body.model_dump()
+{% else %}
+    return {}
+{% endif %}
+{% endif %}
+{% elif ep.method == 'DELETE' %}
+@router.delete('{{ ep.path }}', status_code=204)
+async def {{ ep.path | snake_case | replace('/', '_') | replace('{', '') | replace('}', '') }}_delete(id: int):
+{% if svc_name %}
+    # TODO: inject {{ svc_name }} via dependency injection
+{% endif %}
+    return None
+{% else %}
+@router.api_route('{{ ep.path }}', methods=['{{ ep.method }}'])
+async def {{ ep.path | snake_case | replace('/', '_') | replace('{', '') | replace('}', '') }}_{{ ep.method | lower }}():
+    # TODO: implement
+    return {'message': 'TODO: implement'}
+{% endif %}
+
+{% endfor %}
