@@ -9,7 +9,57 @@
 
 Drag-and-drop endpoints, DTOs, validators, services, entities, and logic blocks onto a canvas, connect them to define data flow, and generate a full, idiomatic codebase in your chosen language and framework. An AI chat assistant helps you design and modify the graph; an AI-powered function builder fills in business logic.
 
+![Canvas — full flow](docs/screenshots/11-canvas-full-flow.png)
+
 > **About the name.** The public project is **Blueprint Studio**. The code, services, env vars, and Postgres database are still named `flowforge` (the original working title). Both refer to the same project — only the public brand changed.
+
+---
+
+## Screenshots
+
+### Dashboard
+The project dashboard — every project you've built is one click away.
+
+![Dashboard](docs/screenshots/01-dashboard.png)
+
+### Wizard (8 steps)
+A short setup wizard picks your stack before you touch the canvas.
+
+| Step | Screenshot |
+|---|---|
+| 1. Name your project | ![Wizard step 1](docs/screenshots/02-wizard-1-name.png) |
+| 2. Choose language | ![Wizard step 2](docs/screenshots/04-wizard-2-language.png) |
+| 3. Choose framework | ![Wizard step 3](docs/screenshots/05-wizard-3-framework.png) |
+| 4. Choose package manager | ![Wizard step 4](docs/screenshots/06-wizard-4-package-manager.png) |
+| 5. Choose database | ![Wizard step 5](docs/screenshots/07-wizard-5-database.png) |
+| 6. Choose ORM | ![Wizard step 6](docs/screenshots/08-wizard-6-orm.png) |
+| 7. Choose architecture | ![Wizard step 7](docs/screenshots/09-wizard-7-architecture.png) |
+| 8. Configure AI providers | ![Wizard step 8](docs/screenshots/10-wizard-8-llm-providers.png) |
+
+### Canvas
+The heart of the app. Drop nodes from the left sidebar, connect them with edges, and watch the graph become your backend.
+
+![Canvas](docs/screenshots/11-canvas-full-flow.png)
+
+### Config panel
+Click any node to edit its config (label, fields, methods, validation rules, etc.) in a side panel.
+
+![Config panel](docs/screenshots/15-canvas-config-panel.png)
+
+### AI chat assistant
+Ask in natural language — the assistant proposes nodes and edges as a JSON block; you accept and the graph updates.
+
+![Chat panel](docs/screenshots/12-canvas-chat-panel.png)
+
+### Code preview
+A built-in preview of the generated codebase with a file tree, syntax highlighting, a terminal, and an endpoint tester. Click **Run** to spin up the generated app, or **Download ZIP** to take it home.
+
+![Code preview](docs/screenshots/13-canvas-code-preview.png)
+
+### Dependencies panel
+Inspect, add, or pin dependencies for the chosen stack. Each package manager (pip, npm, Composer, Gradle, etc.) brings its own command reference.
+
+![Dependencies panel](docs/screenshots/14-canvas-deps-panel.png)
 
 ---
 
